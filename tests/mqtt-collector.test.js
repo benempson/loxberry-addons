@@ -1,9 +1,8 @@
 'use strict';
 
-const EventEmitter = require('events');
-
 // Mock mqtt module
 jest.mock('mqtt', () => {
+  const { EventEmitter } = require('events');
   const createMockClient = () => {
     const client = new EventEmitter();
     client.subscribe = jest.fn();
