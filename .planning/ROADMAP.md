@@ -30,11 +30,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Plugin reads config from an INI file that both Node.js and PHP can parse
   4. Plugin writes device state to a JSON file atomically (temp file + rename) and reads it back on subsequent runs without data loss
   5. Plugin uses a pidfile lock to prevent overlapping cron runs
-**Plans**: TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md — Project scaffold, test fixtures, and INI config reader
+- [ ] 01-02-PLAN.md — MQTT collector and device registry modules
+- [ ] 01-03-PLAN.md — State store (atomic JSON) and pidfile lock
+- [ ] 01-04-PLAN.md — Main entry point wiring all modules together
 
 **Research flag**: VERIFY on live Loxberry host -- cron fragment path, plugin.cfg field names, plugin directory layout. Inspect an existing installed plugin as reference.
 
@@ -106,7 +108,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. MQTT Foundation and State Persistence | 0/? | Not started | - |
+| 1. MQTT Foundation and State Persistence | 0/4 | Planned | - |
 | 2. Threshold Evaluation and Alert Logic | 0/? | Not started | - |
 | 3. Alert Delivery | 0/? | Not started | - |
 | 4. Web Config UI | 0/? | Not started | - |
