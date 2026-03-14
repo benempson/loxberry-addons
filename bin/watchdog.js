@@ -12,6 +12,7 @@ const { readConfig } = require('./lib/config');
 const { collectMessages } = require('./lib/mqtt-collector');
 const { buildDeviceRegistry } = require('./lib/device-registry');
 const { readState, writeState, acquireLock } = require('./lib/state-store');
+const { evaluateDevices } = require('./lib/evaluator');
 
 // Paths -- overridable via env vars for dev/test
 const PLUGIN_NAME = 'zigbee_watchdog';
@@ -20,6 +21,31 @@ const CONFIG_PATH = process.env.WATCHDOG_CONFIG || path.join(BASE_DIR, 'config',
 const DATA_DIR = process.env.WATCHDOG_DATA_DIR || path.join(BASE_DIR, 'data', 'plugins', PLUGIN_NAME);
 const STATE_PATH = path.join(DATA_DIR, 'state.json');
 const LOCK_FILE = path.join(DATA_DIR, 'watchdog.lock');
+
+/**
+ * Format evaluation result into a human-readable summary line.
+ * @param {object} result - Return value from evaluateDevices
+ * @returns {string} Summary line (e.g. "3 alerts (2 offline, 1 battery), 1 recovery, 5 excluded")
+ */
+function formatSummary(result) {
+  const alerts = result.transitions.filter(t => t.transition === 'alert');
+  const recoveries = result.transitions.filter(t => t.transition === 'recovery');
+  const offlineAlerts = alerts.filter(t => t.type === 'offline').length;
+  const batteryAlerts = alerts.filter(t => t.type === 'battery').length;
+  const { excludedCount } = result;
+
+  const parts = [];
+  if (alerts.length > 0) {
+    const breakdown = [];
+    if (offlineAlerts > 0) breakdown.push(`${offlineAlerts} offline`);
+    if (batteryAlerts > 0) breakdown.push(`${batteryAlerts} battery`);
+    parts.push(`${alerts.length} alerts (${breakdown.join(', ')})`);
+  }
+  if (recoveries.length > 0) parts.push(`${recoveries.length} recovery`);
+  if (excludedCount > 0) parts.push(`${excludedCount} excluded`);
+
+  return parts.length > 0 ? parts.join(', ') : 'No changes';
+}
 
 /**
  * Merge device registry data and MQTT message payloads into persisted state.
@@ -92,9 +118,11 @@ async function main() {
     const bridgeTopic = `${config.MQTT.base_topic}/bridge/devices`;
     const registry = buildDeviceRegistry(messages.get(bridgeTopic));
     mergeDeviceState(state, registry, messages, config.MQTT.base_topic);
+    const result = evaluateDevices(state, config);
     state.last_run = new Date().toISOString();
     await writeState(STATE_PATH, state);
-    console.log(`Run complete. ${registry.size} devices tracked.`);
+    const evalSummary = formatSummary(result);
+    console.log(`Run complete. ${registry.size} devices tracked. ${evalSummary}`);
   } finally {
     if (release) await release();
   }
