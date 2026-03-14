@@ -12,7 +12,7 @@ Build a Loxberry plugin that monitors 50+ Zigbee devices via zigbee2mqtt MQTT me
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: MQTT Foundation and State Persistence** - Connect to MQTT broker, drain retained messages, build device registry, persist state with atomic writes
+- [x] **Phase 1: MQTT Foundation and State Persistence** - Connect to MQTT broker, drain retained messages, build device registry, persist state with atomic writes (completed 2026-03-14)
 - [ ] **Phase 2: Threshold Evaluation and Alert Logic** - Track last-seen and battery, evaluate offline/low-battery thresholds, deduplicate alerts, handle exclusions
 - [ ] **Phase 3: Alert Delivery** - Send alerts via Loxberry notifications and SMTP email, detect bridge offline state
 - [ ] **Phase 4: Web Config UI** - PHP config pages for MQTT settings, thresholds, exclusions, notification preferences, and device status table
@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Plugin reads config from an INI file that both Node.js and PHP can parse
   4. Plugin writes device state to a JSON file atomically (temp file + rename) and reads it back on subsequent runs without data loss
   5. Plugin uses a pidfile lock to prevent overlapping cron runs
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [ ] 01-01-PLAN.md — Project scaffold, test fixtures, and INI config reader
@@ -108,7 +108,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. MQTT Foundation and State Persistence | 3/4 | In Progress|  |
+| 1. MQTT Foundation and State Persistence | 4/4 | Complete   | 2026-03-14 |
 | 2. Threshold Evaluation and Alert Logic | 0/? | Not started | - |
 | 3. Alert Delivery | 0/? | Not started | - |
 | 4. Web Config UI | 0/? | Not started | - |

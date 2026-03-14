@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-03-14T11:15:26Z"
-last_activity: 2026-03-14 -- Completed 01-03 (State store and pidfile lock)
+stopped_at: Completed 01-04-PLAN.md
+last_updated: "2026-03-14T11:30:00Z"
+last_activity: 2026-03-14 -- Completed 01-04 (Watchdog entry point and device state merge)
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
   percent: 75
 ---
 
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 
 ## Current Position
 
-Phase: 1 of 5 (MQTT Foundation and State Persistence)
-Plan: 3 of 4 in current phase
-Status: Executing
-Last activity: 2026-03-14 -- Completed 01-03 (State store and pidfile lock)
+Phase: 1 of 5 (MQTT Foundation and State Persistence) -- COMPLETE
+Plan: 4 of 4 in current phase
+Status: Phase Complete
+Last activity: 2026-03-14 -- Completed 01-04 (Watchdog entry point and device state merge)
 
-Progress: [████████░░] 75%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Progress: [████████░░] 75%
 | Phase 01 P01 | 3min | 2 tasks | 8 files |
 | Phase 01 P02 | 2min | 2 tasks | 4 files |
 | Phase 01 P03 | 3min | 2 tasks | 3 files |
+| Phase 01 P04 | 3min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,7 @@ Recent decisions affecting current work:
 - [Phase 01]: collectMessages accepts drain_seconds directly; caller merges CRON config
 - [Phase 01]: client.end(true) on error for forced disconnect vs end(false) for clean drain
 - [Phase 01]: Stale lock timeout 60s for pidfile locking; readState returns copy of empty state to prevent mutation
+- [Phase 01]: Exported main() for testability; mergeDeviceState preserves devices not in current registry
 
 ### Pending Todos
 
@@ -77,6 +79,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T11:15:26Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-03-14T11:30:00Z
+Stopped at: Completed 01-04-PLAN.md
 Resume file: None

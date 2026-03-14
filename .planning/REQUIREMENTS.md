@@ -16,8 +16,8 @@
 ### Device Tracking (DEVT)
 
 - [x] **DEVT-01**: Plugin parses `bridge/devices` to build device registry with IEEE address, friendly name, power source, and device type
-- [ ] **DEVT-02**: Plugin tracks `last_seen` per device from device payloads (falls back to message receipt time if `last_seen` not present)
-- [ ] **DEVT-03**: Plugin tracks `battery` level for battery-powered devices only (identified via `power_source` field)
+- [x] **DEVT-02**: Plugin tracks `last_seen` per device from device payloads (falls back to message receipt time if `last_seen` not present)
+- [x] **DEVT-03**: Plugin tracks `battery` level for battery-powered devices only (identified via `power_source` field)
 - [x] **DEVT-04**: Plugin persists device state to a JSON file between cron runs, keyed on IEEE address (not friendly name)
 - [x] **DEVT-05**: State file writes are atomic (write to temp file, rename) to prevent corruption
 
