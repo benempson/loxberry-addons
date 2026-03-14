@@ -33,10 +33,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 4/4 plans complete
 
 Plans:
-- [ ] 01-01-PLAN.md — Project scaffold, test fixtures, and INI config reader
-- [ ] 01-02-PLAN.md — MQTT collector and device registry modules
-- [ ] 01-03-PLAN.md — State store (atomic JSON) and pidfile lock
-- [ ] 01-04-PLAN.md — Main entry point wiring all modules together
+- [x] 01-01-PLAN.md — Project scaffold, test fixtures, and INI config reader
+- [x] 01-02-PLAN.md — MQTT collector and device registry modules
+- [x] 01-03-PLAN.md — State store (atomic JSON) and pidfile lock
+- [x] 01-04-PLAN.md — Main entry point wiring all modules together
 
 **Research flag**: VERIFY on live Loxberry host -- cron fragment path, plugin.cfg field names, plugin directory layout. Inspect an existing installed plugin as reference.
 
@@ -49,10 +49,11 @@ Plans:
   2. Plugin tracks battery level for battery-powered devices only (identified via power_source) and flags devices below a configurable threshold (default 25%)
   3. Plugin alerts only on transition from "ok" to "alert" state and clears alert state when a device recovers -- no duplicate alerts on consecutive runs
   4. Plugin skips all monitoring for devices on the exclusion list
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 02-01: TBD
+- [ ] 02-01-PLAN.md — Evaluator module with TDD (threshold evaluation and state machine transitions)
+- [ ] 02-02-PLAN.md — Wire evaluator into watchdog main lifecycle with console summary
 
 ### Phase 3: Alert Delivery
 **Goal**: Plugin delivers alert notifications through Loxberry's built-in system and SMTP email, with clear messages identifying the problem device and status
@@ -109,7 +110,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. MQTT Foundation and State Persistence | 4/4 | Complete   | 2026-03-14 |
-| 2. Threshold Evaluation and Alert Logic | 0/? | Not started | - |
+| 2. Threshold Evaluation and Alert Logic | 0/2 | In Progress | - |
 | 3. Alert Delivery | 0/? | Not started | - |
 | 4. Web Config UI | 0/? | Not started | - |
 | 5. Plugin Packaging and Release | 0/? | Not started | - |
