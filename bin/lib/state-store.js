@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const writeFileAtomic = require('write-file-atomic');
+const lockfile = require('proper-lockfile');
 
 const EMPTY_STATE = { last_run: null, devices: {} };
 
@@ -34,4 +35,24 @@ async function writeState(statePath, state) {
   await writeFileAtomic(statePath, json, { encoding: 'utf8' });
 }
 
-module.exports = { readState, writeState };
+/**
+ * Acquire a pidfile-style lock to prevent overlapping cron runs.
+ * Creates the lock target file if it doesn't exist.
+ * Stale locks (>60s) are automatically cleaned up.
+ * @param {string} lockPath - Absolute path to the lock target file
+ * @returns {Function} Release function -- call to release the lock
+ */
+async function acquireLock(lockPath) {
+  const dir = path.dirname(lockPath);
+  fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(lockPath)) {
+    fs.writeFileSync(lockPath, '');
+  }
+  const release = await lockfile.lock(lockPath, {
+    stale: 60000,
+    retries: 0,
+  });
+  return release;
+}
+
+module.exports = { readState, writeState, acquireLock };
