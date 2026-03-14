@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 2 context gathered
-last_updated: "2026-03-14T12:19:01.028Z"
-last_activity: 2026-03-14 -- Completed 01-04 (Watchdog entry point and device state merge)
+status: in-progress
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-03-14T13:43:25Z"
+last_activity: 2026-03-14 -- Completed 02-01 (Evaluator module with TDD)
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
-  percent: 100
+  total_plans: 6
+  completed_plans: 5
+  percent: 83
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Proactively alert when Zigbee devices are offline or low on battery so they can be fixed before the user notices missing functionality around the house.
-**Current focus:** Phase 1: MQTT Foundation and State Persistence
+**Current focus:** Phase 2: Threshold Evaluation and Alert Logic
 
 ## Current Position
 
-Phase: 1 of 5 (MQTT Foundation and State Persistence) -- COMPLETE
-Plan: 4 of 4 in current phase
-Status: Phase Complete
-Last activity: 2026-03-14 -- Completed 01-04 (Watchdog entry point and device state merge)
+Phase: 2 of 5 (Threshold Evaluation and Alert Logic)
+Plan: 1 of 2 in current phase
+Status: In Progress
+Last activity: 2026-03-14 -- Completed 02-01 (Evaluator module with TDD)
 
-Progress: [██████████] 100%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [██████████] 100%
 | Phase 01 P02 | 2min | 2 tasks | 4 files |
 | Phase 01 P03 | 3min | 2 tasks | 3 files |
 | Phase 01 P04 | 3min | 1 tasks | 2 files |
+| Phase 02 P01 | 4min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -62,7 +63,9 @@ Progress: [██████████] 100%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
--
+- [Phase 02]: 5% battery hysteresis band; alert at <=25%, recover only above 30%
+- [Phase 02]: Strict greater-than for offline threshold boundary (exactly 24h = not offline)
+- [Phase 02]: normalizeAlerts handles legacy Phase 1 state missing recovered_at fields
 - [Phase 01]: Used ini@5.x over v6 for stability
 - [Phase 01]: collectMessages accepts drain_seconds directly; caller merges CRON config
 - [Phase 01]: client.end(true) on error for forced disconnect vs end(false) for clean drain
@@ -79,6 +82,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T12:19:01.026Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-threshold-evaluation-and-alert-logic/02-CONTEXT.md
+Last session: 2026-03-14T13:43:25Z
+Stopped at: Completed 02-01-PLAN.md
+Resume file: .planning/phases/02-threshold-evaluation-and-alert-logic/02-01-SUMMARY.md

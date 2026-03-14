@@ -23,11 +23,11 @@
 
 ### Alerting Logic (ALRT)
 
-- [ ] **ALRT-01**: Plugin alerts when a device has not been seen for longer than a configurable threshold (default 24 hours)
-- [ ] **ALRT-02**: Plugin alerts when a battery-powered device's battery drops below a configurable threshold (default 25%)
-- [ ] **ALRT-03**: Plugin suppresses duplicate alerts — only alerts on transition from "ok" to "alert" state per device
-- [ ] **ALRT-04**: Plugin clears alert state when a device recovers (seen again / battery rises above threshold)
-- [ ] **ALRT-05**: Plugin skips monitoring for devices on the exclusion list
+- [x] **ALRT-01**: Plugin alerts when a device has not been seen for longer than a configurable threshold (default 24 hours)
+- [x] **ALRT-02**: Plugin alerts when a battery-powered device's battery drops below a configurable threshold (default 25%)
+- [x] **ALRT-03**: Plugin suppresses duplicate alerts — only alerts on transition from "ok" to "alert" state per device
+- [x] **ALRT-04**: Plugin clears alert state when a device recovers (seen again / battery rises above threshold)
+- [x] **ALRT-05**: Plugin skips monitoring for devices on the exclusion list
 - [ ] **ALRT-06**: Plugin detects bridge offline state via `bridge/state` topic and alerts separately
 
 ### Notification Delivery (NOTF)
@@ -90,15 +90,15 @@
 | MQTT-04 | Phase 1 | Complete |
 | MQTT-05 | Phase 1 | Complete |
 | DEVT-01 | Phase 1 | Complete |
-| DEVT-02 | Phase 2 | Pending |
-| DEVT-03 | Phase 2 | Pending |
+| DEVT-02 | Phase 2 | Complete |
+| DEVT-03 | Phase 2 | Complete |
 | DEVT-04 | Phase 1 | Complete |
 | DEVT-05 | Phase 1 | Complete |
-| ALRT-01 | Phase 2 | Pending |
-| ALRT-02 | Phase 2 | Pending |
-| ALRT-03 | Phase 2 | Pending |
-| ALRT-04 | Phase 2 | Pending |
-| ALRT-05 | Phase 2 | Pending |
+| ALRT-01 | Phase 2 | Complete |
+| ALRT-02 | Phase 2 | Complete |
+| ALRT-03 | Phase 2 | Complete |
+| ALRT-04 | Phase 2 | Complete |
+| ALRT-05 | Phase 2 | Complete |
 | ALRT-06 | Phase 3 | Pending |
 | NOTF-01 | Phase 3 | Pending |
 | NOTF-02 | Phase 3 | Pending |

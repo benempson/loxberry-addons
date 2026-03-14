@@ -52,7 +52,7 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Evaluator module with TDD (threshold evaluation and state machine transitions)
+- [x] 02-01-PLAN.md — Evaluator module with TDD (threshold evaluation and state machine transitions)
 - [ ] 02-02-PLAN.md — Wire evaluator into watchdog main lifecycle with console summary
 
 ### Phase 3: Alert Delivery
@@ -110,7 +110,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. MQTT Foundation and State Persistence | 4/4 | Complete   | 2026-03-14 |
-| 2. Threshold Evaluation and Alert Logic | 0/2 | In Progress | - |
+| 2. Threshold Evaluation and Alert Logic | 1/2 | In Progress | - |
 | 3. Alert Delivery | 0/? | Not started | - |
 | 4. Web Config UI | 0/? | Not started | - |
 | 5. Plugin Packaging and Release | 0/? | Not started | - |
