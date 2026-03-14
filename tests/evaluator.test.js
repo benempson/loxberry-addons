@@ -349,8 +349,8 @@ describe('evaluateDevices', () => {
     test('returns correct summary shape', () => {
       const state = makeState({
         '0x040': makeDevice({ last_seen: '2026-03-13T10:00:00.000Z' }), // offline
-        '0x041': makeDevice({ battery: 10 }), // low battery
-        '0x042': makeDevice(), // healthy
+        '0x041': makeDevice({ last_seen: '2026-03-15T11:00:00.000Z', battery: 10 }), // low battery, seen recently
+        '0x042': makeDevice({ last_seen: '2026-03-15T11:00:00.000Z' }), // healthy, seen recently
       });
       const config = makeConfig();
       const result = evaluateDevices(state, config, NOW);
