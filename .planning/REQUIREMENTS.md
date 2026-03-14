@@ -7,15 +7,15 @@
 
 ### MQTT Connection (MQTT)
 
-- [ ] **MQTT-01**: Plugin connects to local Mosquitto broker with configurable host, port, username, password
-- [ ] **MQTT-02**: Plugin subscribes to configurable base topic (default `zigbee2mqtt`) — not hardcoded
-- [ ] **MQTT-03**: Plugin uses a timed drain window (2-5s) to collect retained messages, then disconnects cleanly with `client.end()`
-- [ ] **MQTT-04**: Plugin sets a hard process exit timeout (30s) as safety net against zombie processes
+- [x] **MQTT-01**: Plugin connects to local Mosquitto broker with configurable host, port, username, password
+- [x] **MQTT-02**: Plugin subscribes to configurable base topic (default `zigbee2mqtt`) — not hardcoded
+- [x] **MQTT-03**: Plugin uses a timed drain window (2-5s) to collect retained messages, then disconnects cleanly with `client.end()`
+- [x] **MQTT-04**: Plugin sets a hard process exit timeout (30s) as safety net against zombie processes
 - [ ] **MQTT-05**: Plugin uses pidfile lock to prevent overlapping cron runs
 
 ### Device Tracking (DEVT)
 
-- [ ] **DEVT-01**: Plugin parses `bridge/devices` to build device registry with IEEE address, friendly name, power source, and device type
+- [x] **DEVT-01**: Plugin parses `bridge/devices` to build device registry with IEEE address, friendly name, power source, and device type
 - [ ] **DEVT-02**: Plugin tracks `last_seen` per device from device payloads (falls back to message receipt time if `last_seen` not present)
 - [ ] **DEVT-03**: Plugin tracks `battery` level for battery-powered devices only (identified via `power_source` field)
 - [ ] **DEVT-04**: Plugin persists device state to a JSON file between cron runs, keyed on IEEE address (not friendly name)
@@ -84,12 +84,12 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MQTT-01 | Phase 1 | Pending |
-| MQTT-02 | Phase 1 | Pending |
-| MQTT-03 | Phase 1 | Pending |
-| MQTT-04 | Phase 1 | Pending |
+| MQTT-01 | Phase 1 | Complete |
+| MQTT-02 | Phase 1 | Complete |
+| MQTT-03 | Phase 1 | Complete |
+| MQTT-04 | Phase 1 | Complete |
 | MQTT-05 | Phase 1 | Pending |
-| DEVT-01 | Phase 1 | Pending |
+| DEVT-01 | Phase 1 | Complete |
 | DEVT-02 | Phase 2 | Pending |
 | DEVT-03 | Phase 2 | Pending |
 | DEVT-04 | Phase 1 | Pending |
