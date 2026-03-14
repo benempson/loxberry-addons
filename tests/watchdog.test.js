@@ -5,11 +5,13 @@ jest.mock('../bin/lib/config');
 jest.mock('../bin/lib/mqtt-collector');
 jest.mock('../bin/lib/device-registry');
 jest.mock('../bin/lib/state-store');
+jest.mock('../bin/lib/evaluator');
 
 const { readConfig } = require('../bin/lib/config');
 const { collectMessages } = require('../bin/lib/mqtt-collector');
 const { buildDeviceRegistry } = require('../bin/lib/device-registry');
 const { readState, writeState, acquireLock } = require('../bin/lib/state-store');
+const { evaluateDevices } = require('../bin/lib/evaluator');
 
 // We'll import mergeDeviceState after the module exists
 let mergeDeviceState;
@@ -208,24 +210,20 @@ describe('hard timeout', () => {
 });
 
 describe('main lifecycle (happy path)', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  test('calls modules in correct order: lock -> config -> state -> collect -> registry -> merge -> write -> release', async () => {
-    const callOrder = [];
+  /** Helper: set up all mocks for a standard main() run */
+  function setupMainMocks(callOrder) {
     const releaseFn = jest.fn(() => {
-      callOrder.push('release');
+      if (callOrder) callOrder.push('release');
       return Promise.resolve();
     });
 
     acquireLock.mockImplementation(() => {
-      callOrder.push('acquireLock');
+      if (callOrder) callOrder.push('acquireLock');
       return Promise.resolve(releaseFn);
     });
 
     readConfig.mockImplementation(() => {
-      callOrder.push('readConfig');
+      if (callOrder) callOrder.push('readConfig');
       return {
         MQTT: { host: 'localhost', port: 1883, base_topic: 'zigbee2mqtt', username: '', password: '' },
         CRON: { drain_seconds: 3 },
@@ -236,12 +234,12 @@ describe('main lifecycle (happy path)', () => {
     });
 
     readState.mockImplementation(() => {
-      callOrder.push('readState');
+      if (callOrder) callOrder.push('readState');
       return { last_run: null, devices: {} };
     });
 
     collectMessages.mockImplementation(() => {
-      callOrder.push('collectMessages');
+      if (callOrder) callOrder.push('collectMessages');
       const msgs = new Map();
       msgs.set('zigbee2mqtt/bridge/devices', [
         {
@@ -257,7 +255,7 @@ describe('main lifecycle (happy path)', () => {
     });
 
     buildDeviceRegistry.mockImplementation((payload) => {
-      callOrder.push('buildDeviceRegistry');
+      if (callOrder) callOrder.push('buildDeviceRegistry');
       const reg = new Map();
       if (Array.isArray(payload)) {
         for (const d of payload) {
@@ -273,20 +271,29 @@ describe('main lifecycle (happy path)', () => {
       return reg;
     });
 
+    evaluateDevices.mockImplementation(() => {
+      if (callOrder) callOrder.push('evaluateDevices');
+      return { transitions: [], summary: { total_devices: 1, excluded: 0, evaluated: 1, alerts: { offline: 0, battery: 0, total: 0 }, transitions: { new_alerts: 0, recoveries: 0 } }, excludedCount: 0 };
+    });
+
     writeState.mockImplementation(() => {
-      callOrder.push('writeState');
+      if (callOrder) callOrder.push('writeState');
       return Promise.resolve();
     });
 
-    // Run main by re-requiring with mocked require.main
-    // Instead, we test the exported mergeDeviceState integration
-    // and verify the call order through a manual main() invocation
-    const watchdog = require('../bin/watchdog');
+    return releaseFn;
+  }
 
-    // If main is exported, call it directly; otherwise we test via the lifecycle
-    if (watchdog.main) {
-      await watchdog.main();
-    }
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('calls modules in correct order: lock -> config -> state -> collect -> registry -> evaluate -> write -> release', async () => {
+    const callOrder = [];
+    setupMainMocks(callOrder);
+
+    const watchdog = require('../bin/watchdog');
+    await watchdog.main();
 
     expect(callOrder).toEqual([
       'acquireLock',
@@ -294,9 +301,65 @@ describe('main lifecycle (happy path)', () => {
       'readState',
       'collectMessages',
       'buildDeviceRegistry',
+      'evaluateDevices',
       'writeState',
       'release',
     ]);
+  });
+
+  test('evaluateDevices is called with state and config', async () => {
+    setupMainMocks(null);
+
+    const watchdog = require('../bin/watchdog');
+    await watchdog.main();
+
+    expect(evaluateDevices).toHaveBeenCalledTimes(1);
+    // First arg is state object, second is config object
+    const callArgs = evaluateDevices.mock.calls[0];
+    expect(callArgs[0]).toHaveProperty('devices');
+    expect(callArgs[1]).toHaveProperty('THRESHOLDS');
+    expect(callArgs[1]).toHaveProperty('EXCLUSIONS');
+  });
+
+  test('console.log outputs summary with alerts and recoveries', async () => {
+    setupMainMocks(null);
+    evaluateDevices.mockReturnValue({
+      transitions: [
+        { type: 'offline', transition: 'alert', ieee: '0x1', friendly_name: 'A', detail: 'not seen', timestamp: 'T' },
+        { type: 'offline', transition: 'alert', ieee: '0x2', friendly_name: 'B', detail: 'not seen', timestamp: 'T' },
+        { type: 'battery', transition: 'alert', ieee: '0x3', friendly_name: 'C', detail: 'low', timestamp: 'T' },
+        { type: 'offline', transition: 'recovery', ieee: '0x4', friendly_name: 'D', detail: 'seen', timestamp: 'T' },
+      ],
+      summary: {},
+      excludedCount: 5,
+    });
+
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const watchdog = require('../bin/watchdog');
+    await watchdog.main();
+
+    const logOutput = logSpy.mock.calls.map(c => c[0]).join('\n');
+    expect(logOutput).toMatch(/3 alerts \(2 offline, 1 battery\)/);
+    expect(logOutput).toMatch(/1 recovery/);
+    expect(logOutput).toMatch(/5 excluded/);
+    logSpy.mockRestore();
+  });
+
+  test('console.log outputs "No changes" when no transitions or exclusions', async () => {
+    setupMainMocks(null);
+    evaluateDevices.mockReturnValue({
+      transitions: [],
+      summary: {},
+      excludedCount: 0,
+    });
+
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const watchdog = require('../bin/watchdog');
+    await watchdog.main();
+
+    const logOutput = logSpy.mock.calls.map(c => c[0]).join('\n');
+    expect(logOutput).toMatch(/No changes/);
+    logSpy.mockRestore();
   });
 
   test('ELOCKED error causes graceful skip (exit 0)', async () => {
