@@ -1,0 +1,19 @@
+{
+  "name": "zigbee-watchdog",
+  "version": "0.1.0",
+  "private": true,
+  "main": "bin/watchdog.js",
+  "scripts": {
+    "test": "jest",
+    "test:coverage": "jest --coverage"
+  },
+  "dependencies": {
+    "ini": "^5.0.0",
+    "mqtt": "^5.15.0",
+    "proper-lockfile": "^4.1.2",
+    "write-file-atomic": "^7.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0"
+  }
+}

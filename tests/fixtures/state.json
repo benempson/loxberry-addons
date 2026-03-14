@@ -1,0 +1,21 @@
+{
+  "last_run": "2026-03-14T10:00:00.000Z",
+  "devices": {
+    "0x00158d0001a2b3c4": {
+      "friendly_name": "Living Room Motion",
+      "power_source": "Battery",
+      "type": "EndDevice",
+      "last_seen": "2026-03-14T09:45:00.000Z",
+      "battery": 87,
+      "alerts": { "offline": false, "offline_sent_at": null, "battery": false, "battery_sent_at": null }
+    },
+    "0x00158d0001d4e5f6": {
+      "friendly_name": "Kitchen Door",
+      "power_source": "Battery",
+      "type": "EndDevice",
+      "last_seen": "2026-03-13T08:00:00.000Z",
+      "battery": 12,
+      "alerts": { "offline": false, "offline_sent_at": null, "battery": false, "battery_sent_at": null }
+    }
+  }
+}

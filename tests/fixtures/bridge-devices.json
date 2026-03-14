@@ -1,0 +1,69 @@
+[
+  {
+    "ieee_address": "0x00124b0025a7b300",
+    "type": "Coordinator",
+    "network_address": 0,
+    "friendly_name": "Coordinator",
+    "power_source": "Mains (single phase)",
+    "interview_completed": true,
+    "supported": true,
+    "model_id": "CC2652P",
+    "definition": null
+  },
+  {
+    "ieee_address": "0x00158d0001a2b3c4",
+    "type": "Router",
+    "network_address": 12345,
+    "friendly_name": "Living Room Plug",
+    "power_source": "Mains (single phase)",
+    "interview_completed": true,
+    "supported": true,
+    "model_id": "SP-EUC01",
+    "definition": {
+      "model": "SP-EUC01",
+      "vendor": "Tuya",
+      "description": "Smart plug"
+    }
+  },
+  {
+    "ieee_address": "0x00158d0001d4e5f6",
+    "type": "EndDevice",
+    "network_address": 23456,
+    "friendly_name": "Kitchen Door",
+    "power_source": "Battery",
+    "interview_completed": true,
+    "supported": true,
+    "model_id": "MCCGQ11LM",
+    "definition": {
+      "model": "MCCGQ11LM",
+      "vendor": "Xiaomi",
+      "description": "Aqara door & window contact sensor"
+    }
+  },
+  {
+    "ieee_address": "0x00158d0002e6f7a8",
+    "type": "EndDevice",
+    "network_address": 34567,
+    "friendly_name": "Bedroom Motion",
+    "power_source": "Battery",
+    "interview_completed": true,
+    "supported": true,
+    "model_id": "RTCGQ11LM",
+    "definition": {
+      "model": "RTCGQ11LM",
+      "vendor": "Xiaomi",
+      "description": "Aqara human body movement and illuminance sensor"
+    }
+  },
+  {
+    "ieee_address": "0x00158d0003f8a9b0",
+    "type": "EndDevice",
+    "network_address": 45678,
+    "friendly_name": "Garage Temp",
+    "power_source": "Battery",
+    "interview_completed": false,
+    "supported": false,
+    "model_id": "WSDCGQ11LM",
+    "definition": null
+  }
+]
