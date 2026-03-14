@@ -51,7 +51,7 @@
 - [ ] **PLUG-02**: Plugin includes idempotent `postinstall.sh` that preserves user config on upgrade
 - [ ] **PLUG-03**: Plugin includes `uninstall.sh` for clean removal
 - [ ] **PLUG-04**: Plugin registers cron job via Loxberry's cron system
-- [ ] **PLUG-05**: Config stored as INI file readable by both Node.js and PHP
+- [x] **PLUG-05**: Config stored as INI file readable by both Node.js and PHP
 
 ## v2 Requirements
 
@@ -113,7 +113,7 @@
 | PLUG-02 | Phase 5 | Pending |
 | PLUG-03 | Phase 5 | Pending |
 | PLUG-04 | Phase 5 | Pending |
-| PLUG-05 | Phase 1 | Pending |
+| PLUG-05 | Phase 1 | Complete |
 
 **Coverage:**
 - v1 requirements: 30 total
