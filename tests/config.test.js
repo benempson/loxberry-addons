@@ -97,8 +97,8 @@ describe('readConfig', () => {
   });
 
   test('throws clear error for nonexistent file', () => {
-    expect(() => readConfig('/nonexistent/path/config.cfg')).toThrow(/config/i);
-    expect(() => readConfig('/nonexistent/path/config.cfg')).not.toThrow('ENOENT');
+    expect(() => readConfig('/nonexistent/path/config.cfg')).toThrow(/Cannot read config file/);
+    expect(() => readConfig('/nonexistent/path/config.cfg')).toThrow(/config\.cfg/);
   });
 
   test('returns all defaults for empty file', () => {

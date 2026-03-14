@@ -1,0 +1,99 @@
+'use strict';
+
+const fs = require('fs');
+const ini = require('ini');
+
+const DEFAULTS = {
+  MQTT: {
+    host: 'localhost',
+    port: '1883',
+    base_topic: 'zigbee2mqtt',
+    username: '',
+    password: '',
+  },
+  THRESHOLDS: {
+    offline_hours: '24',
+    battery_pct: '25',
+  },
+  CRON: {
+    interval_minutes: '60',
+    drain_seconds: '3',
+  },
+  NOTIFICATIONS: {
+    loxberry_enabled: '0',
+    email_enabled: '0',
+    smtp_host: '',
+    smtp_port: '587',
+    smtp_user: '',
+    smtp_pass: '',
+    smtp_from: '',
+    smtp_to: '',
+  },
+  EXCLUSIONS: {
+    devices: '',
+  },
+};
+
+const NUMERIC_FIELDS = {
+  MQTT: ['port'],
+  THRESHOLDS: ['offline_hours', 'battery_pct'],
+  CRON: ['interval_minutes', 'drain_seconds'],
+  NOTIFICATIONS: ['smtp_port'],
+};
+
+const BOOLEAN_FIELDS = {
+  NOTIFICATIONS: ['loxberry_enabled', 'email_enabled'],
+};
+
+/**
+ * Read an INI config file and return a typed config object with defaults merged.
+ * @param {string} configPath - Absolute path to the INI config file
+ * @returns {object} Config object with sections: MQTT, THRESHOLDS, CRON, NOTIFICATIONS, EXCLUSIONS
+ */
+function readConfig(configPath) {
+  let raw;
+  try {
+    raw = fs.readFileSync(configPath, 'utf8');
+  } catch (err) {
+    throw new Error(`Cannot read config file at "${configPath}": ${err.message}`);
+  }
+
+  const parsed = ini.parse(raw);
+
+  // Merge parsed over defaults per section
+  const config = {};
+  for (const [section, defaults] of Object.entries(DEFAULTS)) {
+    config[section] = { ...defaults, ...(parsed[section] || {}) };
+  }
+
+  // Coerce numeric fields
+  for (const [section, fields] of Object.entries(NUMERIC_FIELDS)) {
+    for (const field of fields) {
+      const val = config[section][field];
+      config[section][field] = parseInt(val, 10) || 0;
+    }
+  }
+
+  // Coerce boolean fields
+  for (const [section, fields] of Object.entries(BOOLEAN_FIELDS)) {
+    for (const field of fields) {
+      const val = config[section][field];
+      config[section][field] = val === '1' || val === 'true' || val === true;
+    }
+  }
+
+  // Parse EXCLUSIONS.devices as comma-separated array
+  const devicesRaw = config.EXCLUSIONS.devices;
+  if (typeof devicesRaw === 'string') {
+    config.EXCLUSIONS.devices = devicesRaw
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+  } else if (!Array.isArray(devicesRaw)) {
+    config.EXCLUSIONS.devices = [];
+  }
+
+  return config;
+}
+
+module.exports = { readConfig };
