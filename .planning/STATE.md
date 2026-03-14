@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-03-14T11:14:41Z"
-last_activity: 2026-03-14 -- Completed 01-02 (MQTT collector and device registry)
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-03-14T11:15:26Z"
+last_activity: 2026-03-14 -- Completed 01-03 (State store and pidfile lock)
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
-  percent: 25
+  completed_plans: 3
+  percent: 75
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 ## Current Position
 
 Phase: 1 of 5 (MQTT Foundation and State Persistence)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: Executing
-Last activity: 2026-03-14 -- Completed 01-02 (MQTT collector and device registry)
+Last activity: 2026-03-14 -- Completed 01-03 (State store and pidfile lock)
 
-Progress: [█████░░░░░] 50%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Progress: [█████░░░░░] 50%
 *Updated after each plan completion*
 | Phase 01 P01 | 3min | 2 tasks | 8 files |
 | Phase 01 P02 | 2min | 2 tasks | 4 files |
+| Phase 01 P03 | 3min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,7 @@ Recent decisions affecting current work:
 - [Phase 01]: Used ini@5.x over v6 for stability
 - [Phase 01]: collectMessages accepts drain_seconds directly; caller merges CRON config
 - [Phase 01]: client.end(true) on error for forced disconnect vs end(false) for clean drain
+- [Phase 01]: Stale lock timeout 60s for pidfile locking; readState returns copy of empty state to prevent mutation
 
 ### Pending Todos
 
@@ -75,6 +77,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T11:14:41Z
-Stopped at: Completed 01-02-PLAN.md
+Last session: 2026-03-14T11:15:26Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None

@@ -30,7 +30,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Plugin reads config from an INI file that both Node.js and PHP can parse
   4. Plugin writes device state to a JSON file atomically (temp file + rename) and reads it back on subsequent runs without data loss
   5. Plugin uses a pidfile lock to prevent overlapping cron runs
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
 - [ ] 01-01-PLAN.md — Project scaffold, test fixtures, and INI config reader
@@ -108,7 +108,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. MQTT Foundation and State Persistence | 2/4 | In Progress|  |
+| 1. MQTT Foundation and State Persistence | 3/4 | In Progress|  |
 | 2. Threshold Evaluation and Alert Logic | 0/? | Not started | - |
 | 3. Alert Delivery | 0/? | Not started | - |
 | 4. Web Config UI | 0/? | Not started | - |
