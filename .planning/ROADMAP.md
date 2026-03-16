@@ -64,7 +64,7 @@ Plans:
   2. Plugin sends alerts via SMTP email using configurable SMTP settings when enabled
   3. Alert messages include device friendly name, status (offline or low battery), and relevant detail (hours since last seen or battery percentage)
   4. Plugin detects bridge offline state via bridge/state topic and raises a separate alert
-**Plans:** 3 plans
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] 03-01-PLAN.md — Bridge monitor and email template modules (pure logic, TDD)
@@ -113,6 +113,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. MQTT Foundation and State Persistence | 4/4 | Complete   | 2026-03-14 |
 | 2. Threshold Evaluation and Alert Logic | 1/2 | In Progress | - |
-| 3. Alert Delivery | 0/3 | Not started | - |
+| 3. Alert Delivery | 2/3 | In Progress|  |
 | 4. Web Config UI | 0/? | Not started | - |
 | 5. Plugin Packaging and Release | 0/? | Not started | - |

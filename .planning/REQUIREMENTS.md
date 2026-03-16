@@ -28,13 +28,13 @@
 - [x] **ALRT-03**: Plugin suppresses duplicate alerts — only alerts on transition from "ok" to "alert" state per device
 - [x] **ALRT-04**: Plugin clears alert state when a device recovers (seen again / battery rises above threshold)
 - [x] **ALRT-05**: Plugin skips monitoring for devices on the exclusion list
-- [ ] **ALRT-06**: Plugin detects bridge offline state via `bridge/state` topic and alerts separately
+- [x] **ALRT-06**: Plugin detects bridge offline state via `bridge/state` topic and alerts separately
 
 ### Notification Delivery (NOTF)
 
 - [ ] **NOTF-01**: Plugin sends alerts via Loxberry's built-in notification system
 - [ ] **NOTF-02**: Plugin sends alerts via SMTP email using configurable SMTP settings
-- [ ] **NOTF-03**: Alert messages include device friendly name, status (offline/low battery), and relevant detail (last seen time / battery %)
+- [x] **NOTF-03**: Alert messages include device friendly name, status (offline/low battery), and relevant detail (last seen time / battery %)
 
 ### Web Config UI (CONF)
 
@@ -99,10 +99,10 @@
 | ALRT-03 | Phase 2 | Complete |
 | ALRT-04 | Phase 2 | Complete |
 | ALRT-05 | Phase 2 | Complete |
-| ALRT-06 | Phase 3 | Pending |
+| ALRT-06 | Phase 3 | Complete |
 | NOTF-01 | Phase 3 | Pending |
 | NOTF-02 | Phase 3 | Pending |
-| NOTF-03 | Phase 3 | Pending |
+| NOTF-03 | Phase 3 | Complete |
 | CONF-01 | Phase 4 | Pending |
 | CONF-02 | Phase 4 | Pending |
 | CONF-03 | Phase 4 | Pending |

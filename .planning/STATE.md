@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 3 context gathered
-last_updated: "2026-03-16T08:42:38.804Z"
-last_activity: 2026-03-14 -- Completed 02-02 (Evaluator integration into watchdog)
+status: in-progress
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-03-16T09:50:01Z"
+last_activity: 2026-03-16 -- Completed 03-02 (Loxberry notify + SMTP email channels)
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
-  percent: 100
+  total_plans: 9
+  completed_plans: 8
+  percent: 89
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Proactively alert when Zigbee devices are offline or low on battery so they can be fixed before the user notices missing functionality around the house.
-**Current focus:** Phase 2 complete. Ready for Phase 3: Notification Delivery
+**Current focus:** Phase 3: Alert Delivery -- bridge monitor and email templates done, notification channels next
 
 ## Current Position
 
-Phase: 2 of 5 (Threshold Evaluation and Alert Logic)
-Plan: 2 of 2 in current phase (PHASE COMPLETE)
-Status: Phase Complete
-Last activity: 2026-03-14 -- Completed 02-02 (Evaluator integration into watchdog)
+Phase: 3 of 5 (Alert Delivery)
+Plan: 2 of 3 in current phase
+Status: In Progress
+Last activity: 2026-03-16 -- Completed 03-02 (Loxberry notify + SMTP email channels)
 
-Progress: [██████████] 100%
+Progress: [████████░░] 89%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [██████████] 100%
 | Phase 01 P04 | 3min | 1 tasks | 2 files |
 | Phase 02 P01 | 4min | 2 tasks | 2 files |
 | Phase 02 P02 | 3min | 1 tasks | 2 files |
+| Phase 03 P01 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,9 @@ Progress: [██████████] 100%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
+- [Phase 03]: Bridge monitor treats missing/malformed payloads as offline (safe default)
+- [Phase 03]: First run defaults wasOnline=true so initial offline is detected as transition
+- [Phase 03]: HTML email uses inline styles (email clients strip external CSS)
 - [Phase 02]: 5% battery hysteresis band; alert at <=25%, recover only above 30%
 - [Phase 02]: Strict greater-than for offline threshold boundary (exactly 24h = not offline)
 - [Phase 02]: normalizeAlerts handles legacy Phase 1 state missing recovered_at fields
@@ -84,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T08:42:38.801Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-alert-delivery/03-CONTEXT.md
+Last session: 2026-03-16T09:10:11Z
+Stopped at: Completed 03-01-PLAN.md
+Resume file: .planning/phases/03-alert-delivery/03-01-SUMMARY.md
