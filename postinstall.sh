@@ -24,12 +24,8 @@ chown loxberry:loxberry "$PDATA"
 if [ ! -f "$PCONFIG/watchdog.cfg" ]; then
     echo "<INFO> Creating default configuration"
     cat > "$PCONFIG/watchdog.cfg" << 'CFGEOF'
-[MQTT]
-host = localhost
-port = 1883
-base_topic = zigbee2mqtt
-username =
-password =
+[Z2M]
+z2m_data_path =
 
 [THRESHOLDS]
 offline_hours = 24
@@ -37,7 +33,6 @@ battery_pct = 25
 
 [CRON]
 interval_minutes = 60
-drain_seconds = 3
 
 [NOTIFICATIONS]
 loxberry_enabled = 0

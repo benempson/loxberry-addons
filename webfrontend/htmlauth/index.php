@@ -2,7 +2,7 @@
 /**
  * Zigbee Watchdog - Configuration Page
  *
- * Loxberry plugin web interface for configuring MQTT, thresholds,
+ * Loxberry plugin web interface for configuring z2m data path, thresholds,
  * notifications, exclusions, and viewing device status.
  */
 
@@ -20,12 +20,8 @@ $cfgfile = LBPCONFIGDIR . "/watchdog.cfg";
 // Default values (must match bin/lib/config.js DEFAULTS)
 // ------------------------------------------------------------------
 $defaults = array(
-    'MQTT' => array(
-        'host'       => 'localhost',
-        'port'       => '1883',
-        'base_topic' => 'zigbee2mqtt',
-        'username'   => '',
-        'password'   => '',
+    'Z2M' => array(
+        'z2m_data_path' => '',
     ),
     'THRESHOLDS' => array(
         'offline_hours' => '24',
@@ -33,7 +29,6 @@ $defaults = array(
     ),
     'CRON' => array(
         'interval_minutes' => '60',
-        'drain_seconds'    => '3',
     ),
     'NOTIFICATIONS' => array(
         'loxberry_enabled'  => '0',
@@ -219,12 +214,8 @@ if (file_exists($state_file)) {
 // ------------------------------------------------------------------
 function collect_form_config($defaults, $cfgfile) {
     $new_config = array(
-        'MQTT' => array(
-            'host'       => trim($_POST['mqtt_host'] ?? ''),
-            'port'       => trim($_POST['mqtt_port'] ?? '1883'),
-            'base_topic' => trim($_POST['mqtt_topic'] ?? 'zigbee2mqtt'),
-            'username'   => trim($_POST['mqtt_user'] ?? ''),
-            'password'   => $_POST['mqtt_pass'] ?? '',
+        'Z2M' => array(
+            'z2m_data_path' => trim($_POST['z2m_path'] ?? ''),
         ),
         'THRESHOLDS' => array(
             'offline_hours' => trim($_POST['offline_hours'] ?? '24'),
@@ -232,7 +223,6 @@ function collect_form_config($defaults, $cfgfile) {
         ),
         'CRON' => array(
             'interval_minutes' => trim($_POST['cron_interval'] ?? '60'),
-            'drain_seconds'    => trim($_POST['drain_seconds'] ?? '3'),
         ),
         'NOTIFICATIONS' => array(
             'loxberry_enabled'  => ($_POST['lb_notify'] ?? '0') === '1' ? '1' : '0',
@@ -253,7 +243,7 @@ function collect_form_config($defaults, $cfgfile) {
 }
 
 // ------------------------------------------------------------------
-// POST handler: Save Settings / Test MQTT / Test Email
+// POST handler: Save Settings / Verify Z2M / Test Email
 // ------------------------------------------------------------------
 $error = '';
 $msg = isset($_GET['msg']) ? $_GET['msg'] : '';
@@ -261,16 +251,16 @@ $test_result = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
-    if ($_POST['action'] === 'test_mqtt') {
+    if ($_POST['action'] === 'verify_z2m') {
         set_time_limit(45);
-        // Save current form settings so test script reads latest values
+        // Save current form settings so verify script reads latest values
         $new_config = collect_form_config($defaults, $cfgfile);
         write_config($cfgfile, $new_config);
-        // Run MQTT test
+        // Run Z2M path verification
         $output = array();
         $retval = -1;
-        exec('node ' . LBPBINDIR . '/test-mqtt.js 2>&1', $output, $retval);
-        $test_result = array('type' => 'mqtt', 'success' => ($retval === 0), 'message' => implode("\n", $output));
+        exec('node ' . LBPBINDIR . '/verify-z2m.js 2>&1', $output, $retval);
+        $test_result = array('type' => 'z2m', 'success' => ($retval === 0), 'message' => implode("\n", $output));
     }
 
     if ($_POST['action'] === 'test_email') {
@@ -290,10 +280,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         // Server-side validation
         $errors = array();
-        $port = intval($new_config['MQTT']['port']);
-        if ($port < 1 || $port > 65535) {
-            $errors[] = 'MQTT port must be between 1 and 65535.';
-        }
         $offline = intval($new_config['THRESHOLDS']['offline_hours']);
         if ($offline < 1) {
             $errors[] = 'Offline hours must be at least 1.';
@@ -307,10 +293,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (!in_array($interval, $allowed_intervals)) {
             $interval = 60;
             $new_config['CRON']['interval_minutes'] = strval($interval);
-        }
-        $drain = intval($new_config['CRON']['drain_seconds']);
-        if ($drain < 1 || $drain > 30) {
-            $errors[] = 'Drain time must be between 1 and 30 seconds.';
         }
         $smtp_port = intval($new_config['NOTIFICATIONS']['smtp_port']);
         if ($new_config['NOTIFICATIONS']['email_enabled'] === '1' && ($smtp_port < 1 || $smtp_port > 65535)) {
@@ -358,6 +340,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 // Read current config for form pre-fill
 // ------------------------------------------------------------------
 $config = read_config($cfgfile, $defaults);
+
+// ------------------------------------------------------------------
+// Compute Z2M status for settings page display
+// ------------------------------------------------------------------
+$z2m_status_text = '';
+$z2m_data_path = $config['Z2M']['z2m_data_path'] ?? '';
+if (empty($z2m_data_path)) {
+    // Try auto-detect: check known paths for state.json
+    $search_paths = array('/opt/zigbee2mqtt/data', '/opt/loxberry/data/plugins/zigbee2mqtt/zigbee2mqtt/', '/opt/loxberry/data/plugins/zigbee2mqtt/');
+    foreach ($search_paths as $try_path) {
+        if (file_exists($try_path . '/state.json')) {
+            $z2m_data_path = $try_path;
+            break;
+        }
+    }
+}
+if (!empty($z2m_data_path) && file_exists($z2m_data_path . '/state.json')) {
+    $z2m_state_raw = @file_get_contents($z2m_data_path . '/state.json');
+    $z2m_state_data = $z2m_state_raw ? @json_decode($z2m_state_raw, true) : array();
+    $z2m_device_count = is_array($z2m_state_data) ? count($z2m_state_data) : 0;
+    $z2m_state_mtime = @filemtime($z2m_data_path . '/state.json');
+    if ($z2m_state_mtime) {
+        $age_seconds = time() - $z2m_state_mtime;
+        if ($age_seconds < 60) $age_str = $age_seconds . 's ago';
+        elseif ($age_seconds < 3600) $age_str = floor($age_seconds / 60) . 'm ago';
+        elseif ($age_seconds < 86400) $age_str = floor($age_seconds / 3600) . 'h ago';
+        else $age_str = floor($age_seconds / 86400) . 'd ago';
+    } else {
+        $age_str = 'unknown';
+    }
+    $z2m_status_text = $z2m_device_count . ' devices, state.json ' . $age_str;
+}
 
 // ------------------------------------------------------------------
 // Exclusion list from INI
@@ -497,46 +511,21 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
         <form method="post" action="index.php" data-ajax="false">
             <input type="hidden" name="action" id="form-action" value="save_settings">
 
-            <!-- MQTT Section -->
-            <h3><?php echo htmlspecialchars($L['SETTINGS.SECTION_MQTT']); ?></h3>
-
+            <!-- Z2M Section -->
+            <h3><?php echo htmlspecialchars($L['SETTINGS.SECTION_Z2M']); ?></h3>
             <div data-role="fieldcontain">
-                <label for="mqtt_host"><?php echo htmlspecialchars($L['SETTINGS.MQTT_HOST']); ?></label>
-                <input type="text" name="mqtt_host" id="mqtt_host"
-                       value="<?php echo htmlspecialchars($config['MQTT']['host']); ?>"
-                       required placeholder="localhost">
+                <label for="z2m_path"><?php echo htmlspecialchars($L['SETTINGS.Z2M_PATH']); ?></label>
+                <input type="text" name="z2m_path" id="z2m_path"
+                       value="<?php echo htmlspecialchars($config['Z2M']['z2m_data_path']); ?>"
+                       placeholder="/opt/zigbee2mqtt/data">
+                <p class="ui-body-d" style="font-size:0.85em;margin-top:2px;"><?php echo htmlspecialchars($L['SETTINGS.Z2M_PATH_HELP']); ?></p>
             </div>
-
-            <div data-role="fieldcontain">
-                <label for="mqtt_port"><?php echo htmlspecialchars($L['SETTINGS.MQTT_PORT']); ?></label>
-                <input type="number" name="mqtt_port" id="mqtt_port"
-                       value="<?php echo htmlspecialchars($config['MQTT']['port']); ?>"
-                       required min="1" max="65535">
-            </div>
-
-            <div data-role="fieldcontain">
-                <label for="mqtt_topic"><?php echo htmlspecialchars($L['SETTINGS.MQTT_TOPIC']); ?></label>
-                <input type="text" name="mqtt_topic" id="mqtt_topic"
-                       value="<?php echo htmlspecialchars($config['MQTT']['base_topic']); ?>"
-                       required placeholder="zigbee2mqtt">
-            </div>
-
-            <div data-role="fieldcontain">
-                <label for="mqtt_user"><?php echo htmlspecialchars($L['SETTINGS.MQTT_USER']); ?></label>
-                <input type="text" name="mqtt_user" id="mqtt_user"
-                       value="<?php echo htmlspecialchars($config['MQTT']['username']); ?>"
-                       placeholder="">
-            </div>
-
-            <div data-role="fieldcontain" style="position:relative;">
-                <label for="mqtt_pass"><?php echo htmlspecialchars($L['SETTINGS.MQTT_PASS']); ?></label>
-                <input type="password" name="mqtt_pass" id="mqtt_pass"
-                       value="<?php echo htmlspecialchars($config['MQTT']['password']); ?>">
-                <a href="#" onclick="togglePassword('mqtt_pass'); return false;"
-                   class="pw-toggle" style="position:absolute;right:10px;top:35px;z-index:10;">
-                    <span id="mqtt_pass_icon">Show</span>
-                </a>
-            </div>
+            <?php if (!empty($z2m_status_text)): ?>
+            <p id="z2m-status" style="font-size:0.9em;color:#666;margin-top:4px;">
+                <strong><?php echo htmlspecialchars($L['SETTINGS.Z2M_STATUS']); ?>:</strong>
+                <?php echo htmlspecialchars($z2m_status_text); ?>
+            </p>
+            <?php endif; ?>
 
             <!-- Thresholds Section -->
             <h3><?php echo htmlspecialchars($L['SETTINGS.SECTION_THRESHOLDS']); ?></h3>
@@ -576,14 +565,6 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
                 <?php endforeach; ?>
                 </select>
                 <p class="ui-body-d" style="font-size:0.85em;margin-top:2px;"><?php echo htmlspecialchars($L['SETTINGS.CRON_INTERVAL_HELP']); ?></p>
-            </div>
-
-            <div data-role="fieldcontain">
-                <label for="drain_seconds"><?php echo htmlspecialchars($L['SETTINGS.DRAIN_SECONDS']); ?></label>
-                <input type="number" name="drain_seconds" id="drain_seconds"
-                       value="<?php echo htmlspecialchars($config['CRON']['drain_seconds']); ?>"
-                       required min="1" max="30">
-                <p class="ui-body-d" style="font-size:0.85em;margin-top:2px;"><?php echo htmlspecialchars($L['SETTINGS.DRAIN_SECONDS_HELP']); ?></p>
             </div>
 
             <!-- Notifications Section -->
@@ -665,9 +646,9 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
 
             <!-- Test buttons -->
             <div style="margin:15px 0;">
-                <button type="submit" id="btn-test-mqtt" class="ui-btn ui-btn-inline ui-mini"
-                        onclick="document.getElementById('form-action').value='test_mqtt';">
-                    <?php echo htmlspecialchars($L['BUTTONS.TEST_MQTT']); ?>
+                <button type="submit" id="btn-verify-z2m" class="ui-btn ui-btn-inline ui-mini"
+                        onclick="document.getElementById('form-action').value='verify_z2m';">
+                    <?php echo htmlspecialchars($L['BUTTONS.VERIFY_Z2M']); ?>
                 </button>
                 <button type="submit" id="btn-test-email" class="ui-btn ui-btn-inline ui-mini"
                         onclick="document.getElementById('form-action').value='test_email';">
@@ -677,7 +658,7 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
 
             <?php if ($test_result !== null): ?>
             <div style="background:<?php echo $test_result['success'] ? '#4CAF50' : '#f44336'; ?>;color:#fff;padding:10px 15px;margin:10px 0;border-radius:4px;">
-                <strong><?php echo $test_result['type'] === 'mqtt' ? 'MQTT Test' : 'Email Test'; ?>:</strong>
+                <strong><?php echo $test_result['type'] === 'z2m' ? 'Z2M Path Verify' : 'Email Test'; ?>:</strong>
                 <?php echo htmlspecialchars($test_result['message']); ?>
             </div>
             <?php endif; ?>
