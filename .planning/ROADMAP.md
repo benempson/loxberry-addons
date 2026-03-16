@@ -119,3 +119,13 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 3. Alert Delivery | 3/3 | Complete   | 2026-03-16 |
 | 4. Web Config UI | 0/3 | Planning complete | - |
 | 5. Plugin Packaging and Release | 0/2 | Planning complete | - |
+
+### Phase 05.1: Replace MQTT dependency with direct zigbee2mqtt file reading (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 5
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 05.1 to break down)

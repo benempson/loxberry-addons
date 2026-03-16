@@ -102,6 +102,10 @@ Recent decisions affecting current work:
 
 None yet.
 
+### Roadmap Evolution
+
+- Phase 05.1 inserted after Phase 5: Replace MQTT dependency with direct zigbee2mqtt file reading (URGENT) — discovered during UAT that MQTT retained messages are unreliable for device state collection; reading z2m's state.json directly is simpler and more robust, also eliminates MQTT broker configuration from plugin settings
+
 ### Blockers/Concerns
 
 - Phase 1, 3, 4 require live Loxberry host verification before implementation (plugin directory layout, notification API, PHP version).
