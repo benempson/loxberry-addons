@@ -632,10 +632,76 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
     </div>
 
     <!-- ============================================================ -->
-    <!-- STATUS TAB (placeholder for Plan 02)                          -->
+    <!-- DEVICE STATUS TAB                                             -->
     <!-- ============================================================ -->
     <div id="tab-status">
-        <p>Coming soon - device status table will be added in a future update.</p>
+
+<?php if ($msg === 'refresh_ok'): ?>
+        <div style="background:#4CAF50;color:#fff;padding:10px 15px;margin:10px 0;border-radius:4px;">
+            <?php echo htmlspecialchars($L['MESSAGES.REFRESH_OK']); ?>
+        </div>
+<?php elseif ($msg === 'refresh_fail'): ?>
+        <div style="background:#f44336;color:#fff;padding:10px 15px;margin:10px 0;border-radius:4px;">
+            <?php echo htmlspecialchars($L['MESSAGES.REFRESH_FAIL']); ?>
+        </div>
+<?php endif; ?>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:10px 0;">
+            <span style="font-size:0.9em;color:#666;">
+                <?php
+                    $last_run = isset($state['last_run']) && $state['last_run'] ? $state['last_run'] : null;
+                    if ($last_run) {
+                        $last_run_ts = strtotime($last_run);
+                        echo htmlspecialchars($L['STATUS.LAST_UPDATED']) . date('Y-m-d H:i:s', $last_run_ts);
+                    } else {
+                        echo htmlspecialchars($L['STATUS.LAST_UPDATED']) . 'Never';
+                    }
+                ?>
+            </span>
+            <form method="post" action="index.php" data-ajax="false" style="margin:0;">
+                <input type="hidden" name="action" value="refresh">
+                <button type="submit" class="ui-btn ui-btn-inline ui-mini">
+                    <?php echo htmlspecialchars($L['BUTTONS.REFRESH']); ?>
+                </button>
+            </form>
+        </div>
+
+<?php if ($state_missing): ?>
+        <div style="background:#2196F3;color:#fff;padding:10px 15px;margin:10px 0;border-radius:4px;">
+            <?php echo htmlspecialchars($L['MESSAGES.NO_DATA']); ?>
+        </div>
+<?php else: ?>
+        <table id="device-table" data-role="table" class="ui-responsive" style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr style="background:#f5f5f5;">
+                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 0, 'str')"><?php echo htmlspecialchars($L['STATUS.COL_DEVICE']); ?></th>
+                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 1, 'num')"><?php echo htmlspecialchars($L['STATUS.COL_LAST_SEEN']); ?></th>
+                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 2, 'num')"><?php echo htmlspecialchars($L['STATUS.COL_BATTERY']); ?></th>
+                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 3, 'num')"><?php echo htmlspecialchars($L['STATUS.COL_ALERT']); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+<?php foreach ($table_rows as $row): ?>
+                <tr style="border-bottom:1px solid #ddd;">
+                    <td style="padding:8px;"><?php echo htmlspecialchars($row['name']); ?></td>
+                    <td style="padding:8px;" data-sort-value="<?php echo $row['last_seen_ts']; ?>"><?php echo htmlspecialchars($row['last_seen_age']); ?></td>
+                    <td style="padding:8px;" data-sort-value="<?php echo $row['battery_sort']; ?>"><?php echo $row['battery'] !== null ? $row['battery'] . '%' : 'N/A'; ?></td>
+                    <td style="padding:8px;" data-sort-value="<?php echo $row['sort_priority']; ?>">
+<?php
+    $badge_bg = '#4CAF50'; // OK = green
+    if ($row['alert_status'] === 'Offline') $badge_bg = '#f44336'; // red
+    elseif ($row['alert_status'] === 'Low Battery') $badge_bg = '#FF9800'; // orange
+    elseif ($row['alert_status'] === 'Excluded') $badge_bg = '#9E9E9E'; // grey
+?>
+                        <span style="background:<?php echo $badge_bg; ?>;color:#fff;padding:2px 8px;border-radius:3px;font-size:0.85em;">
+                            <?php echo htmlspecialchars($row['alert_status']); ?>
+                        </span>
+                    </td>
+                </tr>
+<?php endforeach; ?>
+            </tbody>
+        </table>
+<?php endif; ?>
     </div>
 
 </div>
@@ -663,6 +729,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
+// Sortable table for Device Status tab
+function sortTable(table, col, type) {
+    var tbody = table.querySelector('tbody');
+    if (!tbody) return;
+    var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+    var prevCol = table.dataset.sortCol;
+    var asc = (prevCol === String(col)) ? !(table.dataset.sortAsc === 'true') : true;
+    table.dataset.sortCol = col;
+    table.dataset.sortAsc = asc;
+
+    rows.sort(function(a, b) {
+        var cellA = a.querySelectorAll('td')[col];
+        var cellB = b.querySelectorAll('td')[col];
+        if (!cellA || !cellB) return 0;
+        var valA = cellA.hasAttribute('data-sort-value') ? cellA.getAttribute('data-sort-value') : cellA.textContent.trim();
+        var valB = cellB.hasAttribute('data-sort-value') ? cellB.getAttribute('data-sort-value') : cellB.textContent.trim();
+        if (type === 'num') {
+            valA = parseFloat(valA) || 0;
+            valB = parseFloat(valB) || 0;
+            return asc ? valA - valB : valB - valA;
+        }
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+        if (valA < valB) return asc ? -1 : 1;
+        if (valA > valB) return asc ? 1 : -1;
+        return 0;
+    });
+
+    for (var i = 0; i < rows.length; i++) {
+        tbody.appendChild(rows[i]);
+    }
+}
 
 // Device search filter for Exclusions tab
 var deviceSearch = document.getElementById('device-search');
