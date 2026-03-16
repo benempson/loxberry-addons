@@ -161,6 +161,41 @@ function write_config($cfgfile, $config) {
 }
 
 // ------------------------------------------------------------------
+// Cron helpers: must match bin/lib/cron-helper.js exactly
+// ------------------------------------------------------------------
+
+/**
+ * Convert interval in minutes to a cron expression.
+ * Must produce identical output to bin/lib/cron-helper.js intervalToCron().
+ */
+function interval_to_cron($minutes) {
+    $m = intval($minutes);
+    if ($m <= 0) return '0 * * * *'; // safe default: every hour
+    if ($m < 60) return "*/$m * * * *";
+    if ($m < 1440) {
+        $hours = intval($m / 60);
+        if ($hours === 1) return '0 * * * *';
+        return "0 */$hours * * *";
+    }
+    return '0 3 * * *'; // daily at 3 am
+}
+
+/**
+ * Register/update cron via Loxberry's installcrontab.sh.
+ * Returns true on success, false on failure. Non-fatal.
+ */
+function update_cron($interval_minutes) {
+    $plugin_name = 'zigbee_watchdog';
+    $cron_expr = interval_to_cron($interval_minutes);
+    $cron_line = "$cron_expr loxberry /usr/bin/node " . LBPBINDIR . "/watchdog.js > /dev/null 2>&1";
+    $tmp_file = '/tmp/' . $plugin_name . '_cron';
+    file_put_contents($tmp_file, $cron_line . "\n");
+    exec(LBHOMEDIR . '/sbin/installcrontab.sh ' . escapeshellarg($plugin_name) . ' ' . escapeshellarg($tmp_file) . ' 2>&1', $output, $retval);
+    @unlink($tmp_file);
+    return $retval === 0;
+}
+
+// ------------------------------------------------------------------
 // Load state.json for Exclusions and Status tabs
 // ------------------------------------------------------------------
 $state_file = LBPDATADIR . '/state.json';
@@ -267,9 +302,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if ($battery < 1 || $battery > 100) {
             $errors[] = 'Battery threshold must be between 1 and 100.';
         }
+        $allowed_intervals = array(5, 15, 30, 60, 120, 240, 360, 720, 1440);
         $interval = intval($new_config['CRON']['interval_minutes']);
-        if ($interval < 1) {
-            $errors[] = 'Check interval must be at least 1 minute.';
+        if (!in_array($interval, $allowed_intervals)) {
+            $interval = 60;
+            $new_config['CRON']['interval_minutes'] = strval($interval);
         }
         $drain = intval($new_config['CRON']['drain_seconds']);
         if ($drain < 1 || $drain > 30) {
@@ -284,6 +321,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $error = implode(' ', $errors);
         } else {
             if (write_config($cfgfile, $new_config)) {
+                update_cron(intval($new_config['CRON']['interval_minutes']));
                 header('Location: index.php?msg=saved');
                 exit;
             } else {
@@ -524,9 +562,19 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
 
             <div data-role="fieldcontain">
                 <label for="cron_interval"><?php echo htmlspecialchars($L['SETTINGS.CRON_INTERVAL']); ?></label>
-                <input type="number" name="cron_interval" id="cron_interval"
-                       value="<?php echo htmlspecialchars($config['CRON']['interval_minutes']); ?>"
-                       required min="1">
+                <?php
+                $interval_options = array(
+                    5 => '5 minutes', 15 => '15 minutes', 30 => '30 minutes',
+                    60 => '1 hour', 120 => '2 hours', 240 => '4 hours',
+                    360 => '6 hours', 720 => '12 hours', 1440 => '24 hours',
+                );
+                $current_interval = intval($config['CRON']['interval_minutes']);
+                ?>
+                <select name="cron_interval" id="cron_interval">
+                <?php foreach ($interval_options as $val => $label): ?>
+                    <option value="<?php echo $val; ?>" <?php echo $current_interval === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                <?php endforeach; ?>
+                </select>
                 <p class="ui-body-d" style="font-size:0.85em;margin-top:2px;"><?php echo htmlspecialchars($L['SETTINGS.CRON_INTERVAL_HELP']); ?></p>
             </div>
 
