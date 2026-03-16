@@ -69,7 +69,7 @@ Plans:
 Plans:
 - [x] 03-01-PLAN.md — Bridge monitor and email template modules (pure logic, TDD)
 - [x] 03-02-PLAN.md — Loxberry notify and SMTP email channel modules
-- [ ] 03-03-PLAN.md — Notification dispatcher and watchdog main wiring
+- [x] 03-03-PLAN.md — Notification dispatcher and watchdog main wiring
 
 **Research flag**: VERIFY Loxberry notification API on live system -- exact path and CLI arguments for the notification helper. Test notification delivery in isolation before wiring to the alert pipeline.
 
@@ -83,10 +83,12 @@ Plans:
   3. User can manage a device exclusion list through the web UI
   4. User can view a device status table showing all tracked devices with last-seen age, battery level, and current alert state
   5. Config changes persist to the INI file and are picked up by the next cron run without restart
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 04-01: TBD
+- [ ] 04-01-PLAN.md — INI round-trip test and PHP page skeleton with Settings tab
+- [ ] 04-02-PLAN.md — Exclusions tab and Device Status tab with sortable table
+- [ ] 04-03-PLAN.md — Test helper scripts (MQTT connection test, email test) and button wiring
 
 **Research flag**: VERIFY PHP version on Loxberry host. Find standard Loxberry PHP header/footer include path by inspecting an existing plugin's UI file. Use PHP 5.6-compatible syntax unless confirmed modern.
 
@@ -114,5 +116,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. MQTT Foundation and State Persistence | 4/4 | Complete   | 2026-03-14 |
 | 2. Threshold Evaluation and Alert Logic | 2/2 | Complete | 2026-03-14 |
 | 3. Alert Delivery | 3/3 | Complete   | 2026-03-16 |
-| 4. Web Config UI | 0/? | Not started | - |
+| 4. Web Config UI | 0/3 | Planning complete | - |
 | 5. Plugin Packaging and Release | 0/? | Not started | - |
