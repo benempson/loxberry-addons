@@ -1,26 +1,49 @@
 'use strict';
 
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+const DEFAULT_FRESHNESS_MINUTES = 10;
+
 /**
- * Check bridge online state and detect transitions.
+ * Check bridge online state via systemctl + file freshness.
  * Manages bridge_online and bridge_offline_since in state.
  * Returns transition object if state changed, null otherwise.
  *
- * @param {Map<string, object>} messages - MQTT messages map
- * @param {string} baseTopic - MQTT base topic (e.g. 'zigbee2mqtt')
+ * @param {string} z2mDataPath - Path to z2m data directory
  * @param {object} state - Mutable state object
  * @param {Date} [now] - Injectable current time (defaults to new Date())
+ * @param {number} [freshnessMinutes] - Max age of state.json in minutes (default 10)
  * @returns {{ type: string, transition: string, detail?: string, timestamp: string } | null}
  */
-function checkBridgeState(messages, baseTopic, state, now) {
+function checkBridgeState(z2mDataPath, state, now, freshnessMinutes) {
   now = now || new Date();
-  const bridgeTopic = `${baseTopic}/bridge/state`;
-  const bridgePayload = messages.get(bridgeTopic);
+  freshnessMinutes = freshnessMinutes || DEFAULT_FRESHNESS_MINUTES;
 
-  // Determine current bridge state
-  let bridgeOnline = false;
-  if (bridgePayload && typeof bridgePayload === 'object' && bridgePayload.state) {
-    bridgeOnline = bridgePayload.state === 'online';
+  // Primary check: systemctl is-active
+  let systemctlActive = false;
+  try {
+    const result = execSync('systemctl is-active zigbee2mqtt', { encoding: 'utf8' }).trim();
+    systemctlActive = result === 'active';
+  } catch (_err) {
+    systemctlActive = false;
   }
+
+  // Secondary check: state.json mtime freshness
+  let fileFresh = false;
+  if (systemctlActive) {
+    try {
+      const stat = fs.statSync(path.join(z2mDataPath, 'state.json'));
+      const ageMs = now.getTime() - stat.mtime.getTime();
+      const thresholdMs = freshnessMinutes * 60 * 1000;
+      fileFresh = ageMs <= thresholdMs;
+    } catch (_err) {
+      fileFresh = false;
+    }
+  }
+
+  const bridgeOnline = systemctlActive && fileFresh;
 
   // Default to true on first run (bridge_online undefined)
   const wasOnline = state.bridge_online !== false;

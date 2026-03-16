@@ -4,12 +4,8 @@ const fs = require('fs');
 const ini = require('ini');
 
 const DEFAULTS = {
-  MQTT: {
-    host: 'localhost',
-    port: '1883',
-    base_topic: 'zigbee2mqtt',
-    username: '',
-    password: '',
+  Z2M: {
+    z2m_data_path: '',
   },
   THRESHOLDS: {
     offline_hours: '24',
@@ -17,7 +13,6 @@ const DEFAULTS = {
   },
   CRON: {
     interval_minutes: '60',
-    drain_seconds: '3',
   },
   NOTIFICATIONS: {
     loxberry_enabled: '0',
@@ -36,9 +31,8 @@ const DEFAULTS = {
 };
 
 const NUMERIC_FIELDS = {
-  MQTT: ['port'],
   THRESHOLDS: ['offline_hours', 'battery_pct'],
-  CRON: ['interval_minutes', 'drain_seconds'],
+  CRON: ['interval_minutes'],
   NOTIFICATIONS: ['smtp_port'],
 };
 
@@ -49,7 +43,7 @@ const BOOLEAN_FIELDS = {
 /**
  * Read an INI config file and return a typed config object with defaults merged.
  * @param {string} configPath - Absolute path to the INI config file
- * @returns {object} Config object with sections: MQTT, THRESHOLDS, CRON, NOTIFICATIONS, EXCLUSIONS
+ * @returns {object} Config object with sections: Z2M, THRESHOLDS, CRON, NOTIFICATIONS, EXCLUSIONS
  */
 function readConfig(configPath) {
   let raw;

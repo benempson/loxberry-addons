@@ -1,37 +1,37 @@
 'use strict';
 
 /**
- * Build a device registry Map from the zigbee2mqtt bridge/devices payload.
+ * Build a device registry Map from z2m database.db entries.
  *
  * Filters out Coordinator devices and devices with incomplete interviews.
- * Keys the Map on ieee_address for O(1) lookups.
+ * Keys the Map on ieee_addr for O(1) lookups.
  *
- * @param {Array} bridgeDevicesPayload - The bridge/devices JSON array from zigbee2mqtt
- * @returns {Map<string, object>} Map keyed on ieee_address with device info
+ * @param {Array} databaseEntries - Array of device objects parsed from database.db
+ * @returns {Map<string, object>} Map keyed on ieee_addr with device info
  */
-function buildDeviceRegistry(bridgeDevicesPayload) {
-  if (!Array.isArray(bridgeDevicesPayload)) {
+function buildDeviceRegistry(databaseEntries) {
+  if (!Array.isArray(databaseEntries)) {
     return new Map();
   }
 
   const registry = new Map();
 
-  for (const device of bridgeDevicesPayload) {
+  for (const device of databaseEntries) {
     // Skip devices without an IEEE address
-    if (!device.ieee_address) continue;
+    if (!device.ieee_addr) continue;
 
     // Skip Coordinator
     if (device.type === 'Coordinator') continue;
 
     // Skip devices with incomplete interview
-    if (!device.interview_completed) continue;
+    if (!device.interviewCompleted) continue;
 
-    registry.set(device.ieee_address, {
+    registry.set(device.ieee_addr, {
       friendly_name: device.friendly_name,
-      power_source: device.power_source,
+      power_source: device.powerSource,
       type: device.type,
-      model_id: device.model_id || null,
-      supported: device.supported !== false,
+      model_id: device.modelId || null,
+      supported: true,
     });
   }
 
