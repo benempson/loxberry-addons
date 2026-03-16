@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in-progress
-stopped_at: Completed 05.1-01-PLAN.md
-last_updated: "2026-03-16T17:11:00Z"
-last_activity: 2026-03-16 -- Completed 05.1-01 (z2m file reading modules)
+status: completed
+stopped_at: Completed 05.1-03-PLAN.md
+last_updated: "2026-03-16T17:19:29.160Z"
+last_activity: 2026-03-16 -- Completed 05.1-03 (web UI and config update)
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 17
-  completed_plans: 15
-  percent: 88
+  completed_plans: 17
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Proactively alert when Zigbee devices are offline or low on battery so they can be fixed before the user notices missing functionality around the house.
-**Current focus:** Phase 5.1: Replace MQTT dependency with direct zigbee2mqtt file reading -- in progress
+**Current focus:** Phase 5.1: Replace MQTT dependency with direct zigbee2mqtt file reading -- complete
 
 ## Current Position
 
 Phase: 5.1 of 6 (Replace MQTT with z2m file reading)
-Plan: 1 of 3 in current phase -- Complete
-Status: In Progress
-Last activity: 2026-03-16 -- Completed 05.1-01 (z2m file reading modules)
+Plan: 3 of 3 in current phase -- Complete
+Status: Complete
+Last activity: 2026-03-16 -- Completed 05.1-03 (web UI and config update)
 
-Progress: [████████░░] 88%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -65,6 +65,7 @@ Progress: [████████░░] 88%
 | Phase 05 P01 | 3min | 2 tasks | 7 files |
 | Phase 05 P02 | 2min | 2 tasks | 2 files |
 | Phase 05.1 P01 | 4min | 1 tasks | 11 files |
+| Phase 05.1 P03 | 4min | 1 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -101,6 +102,8 @@ Recent decisions affecting current work:
 - [Phase 05.1]: database.db is newline-delimited JSON; reader splits lines and parses individually
 - [Phase 05.1]: readZ2mState retries once on JSON parse error for z2m mid-write race
 - [Phase 05.1]: Bridge health dual check: systemctl active + file freshness (10min default)
+- [Phase 05.1]: Z2M status line computed server-side at page load using file_get_contents + filemtime
+- [Phase 05.1]: Auto-detect search paths in PHP mirror z2m-reader.js SEARCH_PATHS for consistency
 
 ### Pending Todos
 
@@ -116,6 +119,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T17:11:00Z
-Stopped at: Completed 05.1-01-PLAN.md
+Last session: 2026-03-16T17:19:29.158Z
+Stopped at: Completed 05.1-03-PLAN.md
 Resume file: None
