@@ -9,7 +9,7 @@ setTimeout(() => {
 
 const path = require('path');
 const { readConfig } = require('./lib/config');
-const { readZ2mState, readZ2mDatabase, detectZ2mPath } = require('./lib/z2m-reader');
+const { readZ2mState, readZ2mDatabase, readZ2mDevices, detectZ2mPath } = require('./lib/z2m-reader');
 const { buildDeviceRegistry } = require('./lib/device-registry');
 const { readState, writeState, acquireLock } = require('./lib/state-store');
 const { evaluateDevices } = require('./lib/evaluator');
@@ -55,14 +55,14 @@ function formatSummary(result) {
  *
  * @param {object} state - The persisted state object (mutated in place)
  * @param {Map} registry - Device registry from buildDeviceRegistry
- * @param {object} z2mState - z2m state object keyed by friendly_name
+ * @param {object} z2mState - z2m state object keyed by IEEE address
  */
 function mergeDeviceState(state, registry, z2mState) {
   if (!state.devices) state.devices = {};
 
   for (const [ieee, regEntry] of registry) {
     const existing = state.devices[ieee] || {};
-    const payload = z2mState[regEntry.friendly_name] || {};
+    const payload = z2mState[ieee] || {};
 
     // Determine last_seen
     let lastSeen = existing.last_seen || null;
@@ -123,6 +123,7 @@ async function main() {
 
     const z2mState = readZ2mState(z2mPath);
     const databaseEntries = readZ2mDatabase(z2mPath);
+    const devicesYaml = readZ2mDevices(z2mPath);
 
     // Check bridge state before device evaluation
     const bridgeTransition = checkBridgeState(z2mPath, state);
@@ -138,7 +139,7 @@ async function main() {
       evalSummary = 'Bridge offline, device evaluation skipped';
     } else {
       // Bridge online or recovered: run normal device evaluation
-      const registry = buildDeviceRegistry(databaseEntries);
+      const registry = buildDeviceRegistry(databaseEntries, devicesYaml);
       mergeDeviceState(state, registry, z2mState);
       const result = evaluateDevices(state, config);
       evalSummary = `${registry.size} devices tracked. ${formatSummary(result)}`;
