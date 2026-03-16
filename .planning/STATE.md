@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in-progress
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-16T10:19:49.210Z"
+status: executing
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-03-16T10:25:08.035Z"
 last_activity: 2026-03-16 -- Completed 04-01 (Config page skeleton with Settings tab)
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 11
   percent: 83
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 ## Current Position
 
 Phase: 4 of 5 (Web Config UI)
-Plan: 1 of 3 in current phase -- Complete
+Plan: 2 of 3 in current phase -- Complete
 Status: In Progress
-Last activity: 2026-03-16 -- Completed 04-01 (Config page skeleton with Settings tab)
+Last activity: 2026-03-16 -- Completed 04-02 (Exclusions and Device Status tabs)
 
-Progress: [████████░░] 83%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [████████░░] 83%
 | Phase 03 P02 | 3min | 2 tasks | 7 files |
 | Phase 03 P03 | 3min | 2 tasks | 4 files |
 | Phase 04 P01 | 4min | 2 tasks | 3 files |
+| Phase 04 P02 | 3min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,7 @@ Recent decisions affecting current work:
 - [Phase 03]: State written twice per run: once after evaluation, once after notification delivery to clear pending
 - [Phase 04]: PHP must double-quote INI values containing semicolons (ini@5.x treats unquoted ; as comment)
 - [Phase 04]: SMTP fields use CSS display toggle to preserve jQuery Mobile widget enhancement
+- [Phase 04]: Excluded status overrides OK but not active alerts (offline/battery shown for excluded devices)
 
 ### Pending Todos
 
@@ -97,6 +99,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T10:19:00.000Z
-Stopped at: Completed 04-01-PLAN.md
-Resume file: .planning/phases/04-web-config-ui/04-01-SUMMARY.md
+Last session: 2026-03-16T10:25:08.033Z
+Stopped at: Completed 04-02-PLAN.md
+Resume file: None

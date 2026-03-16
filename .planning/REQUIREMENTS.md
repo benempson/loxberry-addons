@@ -41,9 +41,9 @@
 - [x] **CONF-01**: PHP config page for MQTT connection settings (host, port, base topic, username, password)
 - [x] **CONF-02**: PHP config page for alert thresholds (offline hours, battery percentage)
 - [x] **CONF-03**: PHP config page for notification preferences (enable/disable Loxberry notifications, enable/disable email, SMTP settings)
-- [ ] **CONF-04**: PHP config page for device exclusion list
+- [x] **CONF-04**: PHP config page for device exclusion list
 - [x] **CONF-05**: PHP config page for cron interval setting
-- [ ] **CONF-06**: Device status table showing all tracked devices with last-seen age, battery level, and current alert state
+- [x] **CONF-06**: Device status table showing all tracked devices with last-seen age, battery level, and current alert state
 
 ### Plugin Packaging (PLUG)
 
@@ -106,9 +106,9 @@
 | CONF-01 | Phase 4 | Complete |
 | CONF-02 | Phase 4 | Complete |
 | CONF-03 | Phase 4 | Complete |
-| CONF-04 | Phase 4 | Pending |
+| CONF-04 | Phase 4 | Complete |
 | CONF-05 | Phase 4 | Complete |
-| CONF-06 | Phase 4 | Pending |
+| CONF-06 | Phase 4 | Complete |
 | PLUG-01 | Phase 5 | Pending |
 | PLUG-02 | Phase 5 | Pending |
 | PLUG-03 | Phase 5 | Pending |
