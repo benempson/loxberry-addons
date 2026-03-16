@@ -6,7 +6,6 @@ const os = require('os');
 
 const FIXTURE_PATH = path.join(__dirname, 'fixtures', 'watchdog.cfg');
 
-// Import will fail until config.js exists -- that's expected (RED phase)
 let readConfig;
 try {
   readConfig = require('../bin/lib/config').readConfig;
@@ -21,31 +20,32 @@ describe('readConfig', () => {
     }
   });
 
-  test('returns object with all expected sections', () => {
+  test('returns object with all expected sections (Z2M instead of MQTT)', () => {
     const config = readConfig(FIXTURE_PATH);
-    expect(config).toHaveProperty('MQTT');
+    expect(config).toHaveProperty('Z2M');
     expect(config).toHaveProperty('THRESHOLDS');
     expect(config).toHaveProperty('CRON');
     expect(config).toHaveProperty('NOTIFICATIONS');
     expect(config).toHaveProperty('EXCLUSIONS');
+    expect(config).not.toHaveProperty('MQTT');
   });
 
-  test('parses MQTT section with correct values', () => {
+  test('parses Z2M section with correct values', () => {
     const config = readConfig(FIXTURE_PATH);
-    expect(config.MQTT.host).toBe('localhost');
-    expect(config.MQTT.base_topic).toBe('zigbee2mqtt');
-    expect(config.MQTT.username).toBe('');
-    expect(config.MQTT.password).toBe('');
+    expect(config.Z2M.z2m_data_path).toBe('/opt/zigbee2mqtt/data');
   });
 
   test('coerces numeric fields to numbers', () => {
     const config = readConfig(FIXTURE_PATH);
-    expect(config.MQTT.port).toBe(1883);
     expect(config.THRESHOLDS.offline_hours).toBe(24);
     expect(config.THRESHOLDS.battery_pct).toBe(25);
     expect(config.CRON.interval_minutes).toBe(60);
-    expect(config.CRON.drain_seconds).toBe(3);
     expect(config.NOTIFICATIONS.smtp_port).toBe(587);
+  });
+
+  test('CRON section does not have drain_seconds', () => {
+    const config = readConfig(FIXTURE_PATH);
+    expect(config.CRON).not.toHaveProperty('drain_seconds');
   });
 
   test('coerces boolean fields to booleans', () => {
@@ -61,7 +61,6 @@ describe('readConfig', () => {
   });
 
   test('parses EXCLUSIONS.devices as comma-separated array', () => {
-    // Create a temp config with exclusions
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cfg-'));
     const tmpCfg = path.join(tmpDir, 'test.cfg');
     fs.writeFileSync(tmpCfg, '[EXCLUSIONS]\ndevices = sensor_a, sensor_b , sensor_c\n');
@@ -75,19 +74,14 @@ describe('readConfig', () => {
   });
 
   test('fills missing keys from defaults', () => {
-    // Create a minimal config with only MQTT host
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cfg-'));
     const tmpCfg = path.join(tmpDir, 'minimal.cfg');
-    fs.writeFileSync(tmpCfg, '[MQTT]\nhost = 192.168.1.50\n');
+    fs.writeFileSync(tmpCfg, '[Z2M]\nz2m_data_path = /custom/path\n');
     try {
       const config = readConfig(tmpCfg);
-      // Overridden value
-      expect(config.MQTT.host).toBe('192.168.1.50');
-      // Defaults
-      expect(config.MQTT.port).toBe(1883);
-      expect(config.MQTT.base_topic).toBe('zigbee2mqtt');
+      expect(config.Z2M.z2m_data_path).toBe('/custom/path');
       expect(config.THRESHOLDS.offline_hours).toBe(24);
-      expect(config.CRON.drain_seconds).toBe(3);
+      expect(config.CRON.interval_minutes).toBe(60);
       expect(config.NOTIFICATIONS.loxberry_enabled).toBe(false);
       expect(config.EXCLUSIONS.devices).toEqual([]);
     } finally {
@@ -107,8 +101,7 @@ describe('readConfig', () => {
     fs.writeFileSync(tmpCfg, '');
     try {
       const config = readConfig(tmpCfg);
-      expect(config.MQTT.host).toBe('localhost');
-      expect(config.MQTT.port).toBe(1883);
+      expect(config.Z2M.z2m_data_path).toBe('');
       expect(config.THRESHOLDS.offline_hours).toBe(24);
       expect(config.CRON.interval_minutes).toBe(60);
       expect(config.NOTIFICATIONS.loxberry_enabled).toBe(false);

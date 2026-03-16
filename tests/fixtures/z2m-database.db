@@ -1,0 +1,5 @@
+{"id":1,"type":"Coordinator","ieee_addr":"0x00124b0025a7b300","nwk_addr":0,"friendly_name":"Coordinator","description":"","manufName":"Texas Instruments","modelId":"CC2652P"}
+{"id":2,"type":"Router","ieee_addr":"0x00158d0001a2b3c4","nwk_addr":12345,"friendly_name":"Living Room Plug","description":"","manufName":"Tuya","modelId":"SP-EUC01","powerSource":"Mains (single phase)","interviewCompleted":true}
+{"id":3,"type":"EndDevice","ieee_addr":"0x00158d0001d4e5f6","nwk_addr":23456,"friendly_name":"Kitchen Door","description":"","manufName":"Xiaomi","modelId":"MCCGQ11LM","powerSource":"Battery","interviewCompleted":true}
+{"id":4,"type":"EndDevice","ieee_addr":"0x00158d0002e6f7a8","nwk_addr":34567,"friendly_name":"Bedroom Motion","description":"","manufName":"Xiaomi","modelId":"RTCGQ11LM","powerSource":"Battery","interviewCompleted":true}
+{"id":5,"type":"EndDevice","ieee_addr":"0x00158d0003f8a9b0","nwk_addr":45678,"friendly_name":"Garage Temp","description":"","manufName":"Xiaomi","modelId":"WSDCGQ11LM","powerSource":"Battery","interviewCompleted":false}

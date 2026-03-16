@@ -1,0 +1,5 @@
+{
+  "Living Room Plug": { "state": "ON", "last_seen": "2026-03-14T10:00:00.000Z" },
+  "Kitchen Door": { "contact": true, "battery": 85, "last_seen": "2026-03-14T09:30:00.000Z" },
+  "Bedroom Motion": { "occupancy": false, "battery": 42, "last_seen": "2026-03-13T08:00:00.000Z" }
+}
