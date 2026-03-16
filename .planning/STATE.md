@@ -65,6 +65,7 @@ Progress: [██████████] 100%
 | Phase 05 P01 | 3min | 2 tasks | 7 files |
 | Phase 05 P02 | 2min | 2 tasks | 2 files |
 | Phase 05.1 P01 | 4min | 1 tasks | 11 files |
+| Phase 05.1 P02 | 3min | 2 tasks | 6 files |
 | Phase 05.1 P03 | 4min | 1 tasks | 4 files |
 
 ## Accumulated Context
@@ -102,6 +103,8 @@ Recent decisions affecting current work:
 - [Phase 05.1]: database.db is newline-delimited JSON; reader splits lines and parses individually
 - [Phase 05.1]: readZ2mState retries once on JSON parse error for z2m mid-write race
 - [Phase 05.1]: Bridge health dual check: systemctl active + file freshness (10min default)
+- [Phase 05.1]: mergeDeviceState looks up z2mState by friendly_name directly instead of constructing MQTT topics
+- [Phase 05.1]: z2m path resolution: config priority then auto-detect, descriptive error if neither works
 - [Phase 05.1]: Z2M status line computed server-side at page load using file_get_contents + filemtime
 - [Phase 05.1]: Auto-detect search paths in PHP mirror z2m-reader.js SEARCH_PATHS for consistency
 
