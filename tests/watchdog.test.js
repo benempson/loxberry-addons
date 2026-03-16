@@ -2,7 +2,7 @@
 
 // Mock all lib modules before requiring watchdog
 jest.mock('../bin/lib/config');
-jest.mock('../bin/lib/mqtt-collector');
+jest.mock('../bin/lib/z2m-reader');
 jest.mock('../bin/lib/device-registry');
 jest.mock('../bin/lib/state-store');
 jest.mock('../bin/lib/evaluator');
@@ -10,7 +10,7 @@ jest.mock('../bin/lib/bridge-monitor');
 jest.mock('../bin/lib/notify');
 
 const { readConfig } = require('../bin/lib/config');
-const { collectMessages } = require('../bin/lib/mqtt-collector');
+const { readZ2mState, readZ2mDatabase, detectZ2mPath } = require('../bin/lib/z2m-reader');
 const { buildDeviceRegistry } = require('../bin/lib/device-registry');
 const { readState, writeState, acquireLock } = require('../bin/lib/state-store');
 const { evaluateDevices } = require('../bin/lib/evaluator');
@@ -26,16 +26,14 @@ try {
 }
 
 describe('mergeDeviceState', () => {
-  const baseTopic = 'zigbee2mqtt';
-
   test('new device from registry is added to state with default alerts', () => {
     const state = { devices: {} };
     const registry = new Map([
       ['0xabc', { friendly_name: 'Sensor 1', power_source: 'Battery', type: 'EndDevice' }],
     ]);
-    const messages = new Map();
+    const z2mState = {};
 
-    mergeDeviceState(state, registry, messages, baseTopic);
+    mergeDeviceState(state, registry, z2mState);
 
     expect(state.devices['0xabc']).toEqual({
       friendly_name: 'Sensor 1',
@@ -63,29 +61,27 @@ describe('mergeDeviceState', () => {
     const registry = new Map([
       ['0xabc', { friendly_name: 'New Name', power_source: 'Battery', type: 'EndDevice' }],
     ]);
-    const messages = new Map();
+    const z2mState = {};
 
-    mergeDeviceState(state, registry, messages, baseTopic);
+    mergeDeviceState(state, registry, z2mState);
 
     expect(state.devices['0xabc'].friendly_name).toBe('New Name');
     expect(state.devices['0xabc'].battery).toBe(80);
   });
 
-  test('device payload with last_seen field updates last_seen in state', () => {
+  test('device with last_seen in z2m state updates last_seen in state', () => {
     const state = { devices: {} };
     const registry = new Map([
       ['0xabc', { friendly_name: 'Sensor 1', power_source: 'Battery', type: 'EndDevice' }],
     ]);
-    const messages = new Map([
-      ['zigbee2mqtt/Sensor 1', { last_seen: '2026-03-14T10:00:00.000Z' }],
-    ]);
+    const z2mState = { 'Sensor 1': { last_seen: '2026-03-14T10:00:00.000Z' } };
 
-    mergeDeviceState(state, registry, messages, baseTopic);
+    mergeDeviceState(state, registry, z2mState);
 
     expect(state.devices['0xabc'].last_seen).toBe('2026-03-14T10:00:00.000Z');
   });
 
-  test('device payload without last_seen field falls back to current time', () => {
+  test('device state without last_seen field falls back to current time', () => {
     const now = new Date('2026-03-14T12:00:00.000Z');
     jest.spyOn(global, 'Date').mockImplementation(() => now);
     Date.now = jest.fn(() => now.getTime());
@@ -94,41 +90,35 @@ describe('mergeDeviceState', () => {
     const registry = new Map([
       ['0xabc', { friendly_name: 'Sensor 1', power_source: 'Battery', type: 'EndDevice' }],
     ]);
-    const messages = new Map([
-      ['zigbee2mqtt/Sensor 1', { temperature: 22.5 }],
-    ]);
+    const z2mState = { 'Sensor 1': { temperature: 22.5 } };
 
-    mergeDeviceState(state, registry, messages, baseTopic);
+    mergeDeviceState(state, registry, z2mState);
 
     expect(state.devices['0xabc'].last_seen).toBe('2026-03-14T12:00:00.000Z');
 
     jest.restoreAllMocks();
   });
 
-  test('battery-powered device payload with battery field updates battery', () => {
+  test('battery-powered device with battery field updates battery', () => {
     const state = { devices: {} };
     const registry = new Map([
       ['0xabc', { friendly_name: 'Sensor 1', power_source: 'Battery', type: 'EndDevice' }],
     ]);
-    const messages = new Map([
-      ['zigbee2mqtt/Sensor 1', { battery: 65, last_seen: '2026-03-14T10:00:00.000Z' }],
-    ]);
+    const z2mState = { 'Sensor 1': { battery: 65, last_seen: '2026-03-14T10:00:00.000Z' } };
 
-    mergeDeviceState(state, registry, messages, baseTopic);
+    mergeDeviceState(state, registry, z2mState);
 
     expect(state.devices['0xabc'].battery).toBe(65);
   });
 
-  test('mains-powered device: battery field in payload is ignored', () => {
+  test('mains-powered device: battery field in z2m state is ignored', () => {
     const state = { devices: {} };
     const registry = new Map([
       ['0xabc', { friendly_name: 'Plug 1', power_source: 'Mains (single phase)', type: 'Router' }],
     ]);
-    const messages = new Map([
-      ['zigbee2mqtt/Plug 1', { battery: 100, last_seen: '2026-03-14T10:00:00.000Z' }],
-    ]);
+    const z2mState = { 'Plug 1': { battery: 100, last_seen: '2026-03-14T10:00:00.000Z' } };
 
-    mergeDeviceState(state, registry, messages, baseTopic);
+    mergeDeviceState(state, registry, z2mState);
 
     expect(state.devices['0xabc'].battery).toBeNull();
   });
@@ -149,9 +139,9 @@ describe('mergeDeviceState', () => {
     const registry = new Map([
       ['0xabc', { friendly_name: 'Sensor 1', power_source: 'Battery', type: 'EndDevice' }],
     ]);
-    const messages = new Map();
+    const z2mState = {};
 
-    mergeDeviceState(state, registry, messages, baseTopic);
+    mergeDeviceState(state, registry, z2mState);
 
     expect(state.devices['0xabc'].alerts).toEqual({
       offline: true,
@@ -177,25 +167,23 @@ describe('mergeDeviceState', () => {
     const registry = new Map([
       ['0xnew', { friendly_name: 'New Device', power_source: 'Battery', type: 'EndDevice' }],
     ]);
-    const messages = new Map();
+    const z2mState = {};
 
-    mergeDeviceState(state, registry, messages, baseTopic);
+    mergeDeviceState(state, registry, z2mState);
 
     expect(state.devices['0xold']).toBeDefined();
     expect(state.devices['0xold'].friendly_name).toBe('Old Device');
     expect(state.devices['0xnew']).toBeDefined();
   });
 
-  test('device with slash in friendly_name: message lookup uses correct topic', () => {
+  test('device with slash in friendly_name: z2m state lookup uses correct key', () => {
     const state = { devices: {} };
     const registry = new Map([
       ['0xabc', { friendly_name: 'floor/sensor', power_source: 'Battery', type: 'EndDevice' }],
     ]);
-    const messages = new Map([
-      ['zigbee2mqtt/floor/sensor', { last_seen: '2026-03-14T10:00:00.000Z', battery: 42 }],
-    ]);
+    const z2mState = { 'floor/sensor': { last_seen: '2026-03-14T10:00:00.000Z', battery: 42 } };
 
-    mergeDeviceState(state, registry, messages, baseTopic);
+    mergeDeviceState(state, registry, z2mState);
 
     expect(state.devices['0xabc'].last_seen).toBe('2026-03-14T10:00:00.000Z');
     expect(state.devices['0xabc'].battery).toBe(42);
@@ -204,10 +192,6 @@ describe('mergeDeviceState', () => {
 
 describe('hard timeout', () => {
   test('setTimeout is called with 30000ms at module load', () => {
-    // This is verified by the module structure -- the setTimeout call at the top
-    // We verify the exported HARD_TIMEOUT_MS constant or check the module loaded
-    // Since watchdog.js sets setTimeout at top level, we verify it by checking
-    // that requiring the module doesn't throw and mergeDeviceState is exported
     expect(mergeDeviceState).toBeDefined();
     expect(typeof mergeDeviceState).toBe('function');
   });
@@ -229,8 +213,8 @@ describe('main lifecycle (happy path)', () => {
     readConfig.mockImplementation(() => {
       if (callOrder) callOrder.push('readConfig');
       return {
-        MQTT: { host: 'localhost', port: 1883, base_topic: 'zigbee2mqtt', username: '', password: '' },
-        CRON: { drain_seconds: 3 },
+        Z2M: { z2m_data_path: '' },
+        CRON: { interval_minutes: 60 },
         THRESHOLDS: { offline_hours: 24, battery_pct: 25 },
         NOTIFICATIONS: {},
         EXCLUSIONS: { devices: [] },
@@ -242,31 +226,42 @@ describe('main lifecycle (happy path)', () => {
       return { last_run: null, devices: {} };
     });
 
-    collectMessages.mockImplementation(() => {
-      if (callOrder) callOrder.push('collectMessages');
-      const msgs = new Map();
-      msgs.set('zigbee2mqtt/bridge/devices', [
-        {
-          ieee_address: '0xabc',
-          friendly_name: 'Sensor',
-          power_source: 'Battery',
-          type: 'EndDevice',
-          interview_completed: true,
-          supported: true,
-        },
-      ]);
-      return Promise.resolve(msgs);
+    detectZ2mPath.mockImplementation(() => {
+      if (callOrder) callOrder.push('detectZ2mPath');
+      return '/opt/zigbee2mqtt/data';
     });
 
-    buildDeviceRegistry.mockImplementation((payload) => {
+    readZ2mState.mockImplementation(() => {
+      if (callOrder) callOrder.push('readZ2mState');
+      return {
+        'Sensor': { last_seen: '2026-03-16T10:00:00.000Z', battery: 85 },
+      };
+    });
+
+    readZ2mDatabase.mockImplementation(() => {
+      if (callOrder) callOrder.push('readZ2mDatabase');
+      return [
+        {
+          id: 1,
+          type: 'EndDevice',
+          ieee_addr: '0xabc',
+          friendly_name: 'Sensor',
+          powerSource: 'Battery',
+          interviewCompleted: true,
+          modelId: 'SNZB-02',
+        },
+      ];
+    });
+
+    buildDeviceRegistry.mockImplementation((entries) => {
       if (callOrder) callOrder.push('buildDeviceRegistry');
       const reg = new Map();
-      if (Array.isArray(payload)) {
-        for (const d of payload) {
-          if (d.type !== 'Coordinator' && d.interview_completed) {
-            reg.set(d.ieee_address, {
+      if (Array.isArray(entries)) {
+        for (const d of entries) {
+          if (d.type !== 'Coordinator' && d.interviewCompleted) {
+            reg.set(d.ieee_addr, {
               friendly_name: d.friendly_name,
-              power_source: d.power_source,
+              power_source: d.powerSource,
               type: d.type,
             });
           }
@@ -302,7 +297,7 @@ describe('main lifecycle (happy path)', () => {
     jest.clearAllMocks();
   });
 
-  test('calls modules in correct order: lock -> config -> state -> collect -> registry -> evaluate -> write -> release', async () => {
+  test('calls modules in correct order: lock -> config -> state -> z2m read -> bridge -> registry -> evaluate -> write -> release', async () => {
     const callOrder = [];
     setupMainMocks(callOrder);
 
@@ -313,7 +308,9 @@ describe('main lifecycle (happy path)', () => {
       'acquireLock',
       'readConfig',
       'readState',
-      'collectMessages',
+      'detectZ2mPath',
+      'readZ2mState',
+      'readZ2mDatabase',
       'checkBridgeState',
       'buildDeviceRegistry',
       'evaluateDevices',
@@ -331,11 +328,21 @@ describe('main lifecycle (happy path)', () => {
     await watchdog.main();
 
     expect(evaluateDevices).toHaveBeenCalledTimes(1);
-    // First arg is state object, second is config object
     const callArgs = evaluateDevices.mock.calls[0];
     expect(callArgs[0]).toHaveProperty('devices');
     expect(callArgs[1]).toHaveProperty('THRESHOLDS');
     expect(callArgs[1]).toHaveProperty('EXCLUSIONS');
+  });
+
+  test('checkBridgeState is called with z2mPath and state', async () => {
+    setupMainMocks(null);
+
+    const watchdog = require('../bin/watchdog');
+    await watchdog.main();
+
+    expect(checkBridgeState).toHaveBeenCalledTimes(1);
+    expect(checkBridgeState.mock.calls[0][0]).toBe('/opt/zigbee2mqtt/data');
+    expect(checkBridgeState.mock.calls[0][1]).toHaveProperty('devices');
   });
 
   test('console.log outputs summary with alerts and recoveries', async () => {
@@ -386,9 +393,6 @@ describe('main lifecycle (happy path)', () => {
 
     const watchdog = require('../bin/watchdog');
 
-    // Mock process.exit to throw a sentinel so execution stops like real exit
-    const exitError = new Error('process.exit');
-    exitError.exitCode = 0;
     const mockExit = jest.spyOn(process, 'exit').mockImplementation((code) => {
       const e = new Error('process.exit');
       e.exitCode = code;
@@ -397,7 +401,6 @@ describe('main lifecycle (happy path)', () => {
 
     try {
       await watchdog.main();
-      // Should not reach here
       expect(true).toBe(false);
     } catch (e) {
       expect(e.message).toBe('process.exit');
@@ -407,6 +410,35 @@ describe('main lifecycle (happy path)', () => {
     expect(mockExit).toHaveBeenCalledWith(0);
     mockExit.mockRestore();
   });
+
+  test('when z2m_data_path is set in config, detectZ2mPath is NOT called', async () => {
+    setupMainMocks(null);
+    readConfig.mockReturnValue({
+      Z2M: { z2m_data_path: '/custom/z2m/data' },
+      CRON: { interval_minutes: 60 },
+      THRESHOLDS: { offline_hours: 24, battery_pct: 25 },
+      NOTIFICATIONS: {},
+      EXCLUSIONS: { devices: [] },
+    });
+
+    const watchdog = require('../bin/watchdog');
+    await watchdog.main();
+
+    expect(detectZ2mPath).not.toHaveBeenCalled();
+    expect(readZ2mState).toHaveBeenCalledWith('/custom/z2m/data');
+    expect(readZ2mDatabase).toHaveBeenCalledWith('/custom/z2m/data');
+  });
+
+  test('when z2m_data_path is empty and detectZ2mPath returns null, main() throws descriptive error', async () => {
+    setupMainMocks(null);
+    detectZ2mPath.mockReturnValue(null);
+
+    const watchdog = require('../bin/watchdog');
+
+    await expect(watchdog.main()).rejects.toThrow(
+      'zigbee2mqtt data path not found. Set z2m_data_path in config or ensure z2m is installed in a standard location.'
+    );
+  });
 });
 
 describe('bridge monitor and notification integration', () => {
@@ -415,8 +447,8 @@ describe('bridge monitor and notification integration', () => {
     acquireLock.mockResolvedValue(releaseFn);
 
     readConfig.mockReturnValue({
-      MQTT: { host: 'localhost', port: 1883, base_topic: 'zigbee2mqtt', username: '', password: '' },
-      CRON: { drain_seconds: 3 },
+      Z2M: { z2m_data_path: '/opt/zigbee2mqtt/data' },
+      CRON: { interval_minutes: 60 },
       THRESHOLDS: { offline_hours: 24, battery_pct: 25 },
       NOTIFICATIONS: { loxberry_enabled: true, email_enabled: true },
       EXCLUSIONS: { devices: [] },
@@ -424,11 +456,13 @@ describe('bridge monitor and notification integration', () => {
 
     readState.mockReturnValue({ last_run: null, devices: {}, pending_notifications: [] });
 
-    const msgs = new Map();
-    msgs.set('zigbee2mqtt/bridge/devices', [
-      { ieee_address: '0xabc', friendly_name: 'Sensor', power_source: 'Battery', type: 'EndDevice', interview_completed: true, supported: true },
+    readZ2mState.mockReturnValue({
+      'Sensor': { last_seen: '2026-03-16T10:00:00.000Z', battery: 85 },
+    });
+
+    readZ2mDatabase.mockReturnValue([
+      { id: 1, type: 'EndDevice', ieee_addr: '0xabc', friendly_name: 'Sensor', powerSource: 'Battery', interviewCompleted: true, modelId: 'SNZB-02' },
     ]);
-    collectMessages.mockResolvedValue(msgs);
 
     buildDeviceRegistry.mockReturnValue(new Map([
       ['0xabc', { friendly_name: 'Sensor', power_source: 'Battery', type: 'EndDevice' }],
@@ -453,7 +487,7 @@ describe('bridge monitor and notification integration', () => {
 
   test('normal run (bridge online): evaluateDevices runs, deliverNotifications called, writeState called twice', async () => {
     setupIntegrationMocks();
-    checkBridgeState.mockReturnValue(null); // No transition = bridge is fine
+    checkBridgeState.mockReturnValue(null);
 
     const watchdog = require('../bin/watchdog');
     await watchdog.main();
@@ -475,7 +509,6 @@ describe('bridge monitor and notification integration', () => {
     expect(evaluateDevices).not.toHaveBeenCalled();
     expect(buildDeviceRegistry).not.toHaveBeenCalled();
     expect(deliverNotifications).toHaveBeenCalledTimes(1);
-    // Verify bridge transition was added to state.pending_notifications
     const deliverCall = deliverNotifications.mock.calls[0];
     expect(deliverCall[0].pending_notifications).toContainEqual(bridgeTransition);
     expect(writeState).toHaveBeenCalledTimes(2);
@@ -489,10 +522,8 @@ describe('bridge monitor and notification integration', () => {
     const watchdog = require('../bin/watchdog');
     await watchdog.main();
 
-    // Bridge recovery: evaluation still runs (bridge is online now)
     expect(evaluateDevices).toHaveBeenCalledTimes(1);
     expect(deliverNotifications).toHaveBeenCalledTimes(1);
-    // Verify bridge recovery transition was added
     const deliverCall = deliverNotifications.mock.calls[0];
     expect(deliverCall[0].pending_notifications).toContainEqual(recoveryTransition);
   });
@@ -503,7 +534,6 @@ describe('bridge monitor and notification integration', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     const watchdog = require('../bin/watchdog');
-    // Should not throw
     await watchdog.main();
 
     expect(writeState).toHaveBeenCalledTimes(2);

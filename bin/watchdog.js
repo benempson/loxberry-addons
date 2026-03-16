@@ -9,7 +9,7 @@ setTimeout(() => {
 
 const path = require('path');
 const { readConfig } = require('./lib/config');
-const { collectMessages } = require('./lib/mqtt-collector');
+const { readZ2mState, readZ2mDatabase, detectZ2mPath } = require('./lib/z2m-reader');
 const { buildDeviceRegistry } = require('./lib/device-registry');
 const { readState, writeState, acquireLock } = require('./lib/state-store');
 const { evaluateDevices } = require('./lib/evaluator');
@@ -50,21 +50,19 @@ function formatSummary(result) {
 }
 
 /**
- * Merge device registry data and MQTT message payloads into persisted state.
+ * Merge device registry data and z2m state into persisted state.
  * Updates state.devices in place. Preserves devices not in current registry.
  *
  * @param {object} state - The persisted state object (mutated in place)
  * @param {Map} registry - Device registry from buildDeviceRegistry
- * @param {Map} messages - MQTT messages from collectMessages
- * @param {string} baseTopic - MQTT base topic (e.g. 'zigbee2mqtt')
+ * @param {object} z2mState - z2m state object keyed by friendly_name
  */
-function mergeDeviceState(state, registry, messages, baseTopic) {
+function mergeDeviceState(state, registry, z2mState) {
   if (!state.devices) state.devices = {};
 
   for (const [ieee, regEntry] of registry) {
     const existing = state.devices[ieee] || {};
-    const topic = `${baseTopic}/${regEntry.friendly_name}`;
-    const payload = messages.get(topic) || {};
+    const payload = z2mState[regEntry.friendly_name] || {};
 
     // Determine last_seen
     let lastSeen = existing.last_seen || null;
@@ -73,7 +71,7 @@ function mergeDeviceState(state, registry, messages, baseTopic) {
         ? new Date(payload.last_seen).toISOString()
         : payload.last_seen;
     } else if (Object.keys(payload).length > 0) {
-      // Message received but no last_seen field -- use current time as fallback
+      // State entry exists but no last_seen field -- use current time as fallback
       lastSeen = new Date().toISOString();
     }
 
@@ -116,11 +114,18 @@ async function main() {
     const config = readConfig(CONFIG_PATH);
     const state = readState(STATE_PATH);
     if (!state.pending_notifications) state.pending_notifications = [];
-    const mqttConfig = { ...config.MQTT, drain_seconds: config.CRON.drain_seconds };
-    const messages = await collectMessages(mqttConfig);
+
+    // Resolve z2m data path: config takes priority, then auto-detect
+    const z2mPath = config.Z2M.z2m_data_path || detectZ2mPath();
+    if (!z2mPath) {
+      throw new Error('zigbee2mqtt data path not found. Set z2m_data_path in config or ensure z2m is installed in a standard location.');
+    }
+
+    const z2mState = readZ2mState(z2mPath);
+    const databaseEntries = readZ2mDatabase(z2mPath);
 
     // Check bridge state before device evaluation
-    const bridgeTransition = checkBridgeState(messages, config.MQTT.base_topic, state);
+    const bridgeTransition = checkBridgeState(z2mPath, state);
 
     if (bridgeTransition) {
       state.pending_notifications.push(bridgeTransition);
@@ -133,9 +138,8 @@ async function main() {
       evalSummary = 'Bridge offline, device evaluation skipped';
     } else {
       // Bridge online or recovered: run normal device evaluation
-      const bridgeTopic = `${config.MQTT.base_topic}/bridge/devices`;
-      const registry = buildDeviceRegistry(messages.get(bridgeTopic));
-      mergeDeviceState(state, registry, messages, config.MQTT.base_topic);
+      const registry = buildDeviceRegistry(databaseEntries);
+      mergeDeviceState(state, registry, z2mState);
       const result = evaluateDevices(state, config);
       evalSummary = `${registry.size} devices tracked. ${formatSummary(result)}`;
     }
