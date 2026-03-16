@@ -180,47 +180,78 @@ if (file_exists($state_file)) {
 }
 
 // ------------------------------------------------------------------
-// POST handler: Save Settings
+// Helper: collect settings form values into config array
+// ------------------------------------------------------------------
+function collect_form_config($defaults, $cfgfile) {
+    $new_config = array(
+        'MQTT' => array(
+            'host'       => trim($_POST['mqtt_host'] ?? ''),
+            'port'       => trim($_POST['mqtt_port'] ?? '1883'),
+            'base_topic' => trim($_POST['mqtt_topic'] ?? 'zigbee2mqtt'),
+            'username'   => trim($_POST['mqtt_user'] ?? ''),
+            'password'   => $_POST['mqtt_pass'] ?? '',
+        ),
+        'THRESHOLDS' => array(
+            'offline_hours' => trim($_POST['offline_hours'] ?? '24'),
+            'battery_pct'   => trim($_POST['battery_pct'] ?? '25'),
+        ),
+        'CRON' => array(
+            'interval_minutes' => trim($_POST['cron_interval'] ?? '60'),
+            'drain_seconds'    => trim($_POST['drain_seconds'] ?? '3'),
+        ),
+        'NOTIFICATIONS' => array(
+            'loxberry_enabled'  => ($_POST['lb_notify'] ?? '0') === '1' ? '1' : '0',
+            'email_enabled'     => ($_POST['email_enabled'] ?? '0') === '1' ? '1' : '0',
+            'smtp_host'         => trim($_POST['smtp_host'] ?? ''),
+            'smtp_port'         => trim($_POST['smtp_port'] ?? '587'),
+            'smtp_user'         => trim($_POST['smtp_user'] ?? ''),
+            'smtp_pass'         => $_POST['smtp_pass'] ?? '',
+            'smtp_from'         => trim($_POST['smtp_from'] ?? ''),
+            'smtp_to'           => trim($_POST['smtp_to'] ?? ''),
+            'heartbeat_enabled' => ($_POST['heartbeat'] ?? '0') === '1' ? '1' : '0',
+        ),
+    );
+    // Preserve EXCLUSIONS from existing config
+    $current = read_config($cfgfile, $defaults);
+    $new_config['EXCLUSIONS'] = $current['EXCLUSIONS'];
+    return $new_config;
+}
+
+// ------------------------------------------------------------------
+// POST handler: Save Settings / Test MQTT / Test Email
 // ------------------------------------------------------------------
 $error = '';
 $msg = isset($_GET['msg']) ? $_GET['msg'] : '';
+$test_result = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
-    if ($_POST['action'] === 'save_settings') {
-        // Collect form values
-        $new_config = array(
-            'MQTT' => array(
-                'host'       => trim($_POST['mqtt_host'] ?? ''),
-                'port'       => trim($_POST['mqtt_port'] ?? '1883'),
-                'base_topic' => trim($_POST['mqtt_topic'] ?? 'zigbee2mqtt'),
-                'username'   => trim($_POST['mqtt_user'] ?? ''),
-                'password'   => $_POST['mqtt_pass'] ?? '',
-            ),
-            'THRESHOLDS' => array(
-                'offline_hours' => trim($_POST['offline_hours'] ?? '24'),
-                'battery_pct'   => trim($_POST['battery_pct'] ?? '25'),
-            ),
-            'CRON' => array(
-                'interval_minutes' => trim($_POST['cron_interval'] ?? '60'),
-                'drain_seconds'    => trim($_POST['drain_seconds'] ?? '3'),
-            ),
-            'NOTIFICATIONS' => array(
-                'loxberry_enabled'  => ($_POST['lb_notify'] ?? '0') === '1' ? '1' : '0',
-                'email_enabled'     => ($_POST['email_enabled'] ?? '0') === '1' ? '1' : '0',
-                'smtp_host'         => trim($_POST['smtp_host'] ?? ''),
-                'smtp_port'         => trim($_POST['smtp_port'] ?? '587'),
-                'smtp_user'         => trim($_POST['smtp_user'] ?? ''),
-                'smtp_pass'         => $_POST['smtp_pass'] ?? '',
-                'smtp_from'         => trim($_POST['smtp_from'] ?? ''),
-                'smtp_to'           => trim($_POST['smtp_to'] ?? ''),
-                'heartbeat_enabled' => ($_POST['heartbeat'] ?? '0') === '1' ? '1' : '0',
-            ),
-        );
+    if ($_POST['action'] === 'test_mqtt') {
+        set_time_limit(45);
+        // Save current form settings so test script reads latest values
+        $new_config = collect_form_config($defaults, $cfgfile);
+        write_config($cfgfile, $new_config);
+        // Run MQTT test
+        $output = array();
+        $retval = -1;
+        exec('node ' . LBPBINDIR . '/test-mqtt.js 2>&1', $output, $retval);
+        $test_result = array('type' => 'mqtt', 'success' => ($retval === 0), 'message' => implode("\n", $output));
+    }
 
-        // Preserve EXCLUSIONS from existing config (edited on Exclusions tab)
-        $current = read_config($cfgfile, $defaults);
-        $new_config['EXCLUSIONS'] = $current['EXCLUSIONS'];
+    if ($_POST['action'] === 'test_email') {
+        set_time_limit(45);
+        // Save current form settings so test script reads latest values
+        $new_config = collect_form_config($defaults, $cfgfile);
+        write_config($cfgfile, $new_config);
+        // Run email test
+        $output = array();
+        $retval = -1;
+        exec('node ' . LBPBINDIR . '/test-email.js 2>&1', $output, $retval);
+        $test_result = array('type' => 'email', 'success' => ($retval === 0), 'message' => implode("\n", $output));
+    }
+
+    if ($_POST['action'] === 'save_settings') {
+        $new_config = collect_form_config($defaults, $cfgfile);
 
         // Server-side validation
         $errors = array();
@@ -426,7 +457,7 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
     <!-- ============================================================ -->
     <div id="tab-settings">
         <form method="post" action="index.php" data-ajax="false">
-            <input type="hidden" name="action" value="save_settings">
+            <input type="hidden" name="action" id="form-action" value="save_settings">
 
             <!-- MQTT Section -->
             <h3><?php echo htmlspecialchars($L['SETTINGS.SECTION_MQTT']); ?></h3>
@@ -584,18 +615,28 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
                 </div>
             </div>
 
-            <!-- Test buttons (non-functional placeholders, wired in Plan 03) -->
+            <!-- Test buttons -->
             <div style="margin:15px 0;">
-                <button type="button" id="btn-test-mqtt" class="ui-btn ui-btn-inline ui-mini" disabled>
+                <button type="submit" id="btn-test-mqtt" class="ui-btn ui-btn-inline ui-mini"
+                        onclick="document.getElementById('form-action').value='test_mqtt';">
                     <?php echo htmlspecialchars($L['BUTTONS.TEST_MQTT']); ?>
                 </button>
-                <button type="button" id="btn-test-email" class="ui-btn ui-btn-inline ui-mini" disabled>
+                <button type="submit" id="btn-test-email" class="ui-btn ui-btn-inline ui-mini"
+                        onclick="document.getElementById('form-action').value='test_email';">
                     <?php echo htmlspecialchars($L['BUTTONS.TEST_EMAIL']); ?>
                 </button>
             </div>
 
+            <?php if ($test_result !== null): ?>
+            <div style="background:<?php echo $test_result['success'] ? '#4CAF50' : '#f44336'; ?>;color:#fff;padding:10px 15px;margin:10px 0;border-radius:4px;">
+                <strong><?php echo $test_result['type'] === 'mqtt' ? 'MQTT Test' : 'Email Test'; ?>:</strong>
+                <?php echo htmlspecialchars($test_result['message']); ?>
+            </div>
+            <?php endif; ?>
+
             <!-- Save button -->
-            <button type="submit" class="ui-btn ui-btn-b ui-corner-all">
+            <button type="submit" class="ui-btn ui-btn-b ui-corner-all"
+                    onclick="document.getElementById('form-action').value='save_settings';">
                 <?php echo htmlspecialchars($L['BUTTONS.SAVE']); ?>
             </button>
         </form>
