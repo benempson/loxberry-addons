@@ -13,6 +13,8 @@ const { collectMessages } = require('./lib/mqtt-collector');
 const { buildDeviceRegistry } = require('./lib/device-registry');
 const { readState, writeState, acquireLock } = require('./lib/state-store');
 const { evaluateDevices } = require('./lib/evaluator');
+const { checkBridgeState } = require('./lib/bridge-monitor');
+const { deliverNotifications } = require('./lib/notify');
 
 // Paths -- overridable via env vars for dev/test
 const PLUGIN_NAME = 'zigbee_watchdog';
@@ -113,16 +115,47 @@ async function main() {
   try {
     const config = readConfig(CONFIG_PATH);
     const state = readState(STATE_PATH);
+    if (!state.pending_notifications) state.pending_notifications = [];
     const mqttConfig = { ...config.MQTT, drain_seconds: config.CRON.drain_seconds };
     const messages = await collectMessages(mqttConfig);
-    const bridgeTopic = `${config.MQTT.base_topic}/bridge/devices`;
-    const registry = buildDeviceRegistry(messages.get(bridgeTopic));
-    mergeDeviceState(state, registry, messages, config.MQTT.base_topic);
-    const result = evaluateDevices(state, config);
+
+    // Check bridge state before device evaluation
+    const bridgeTransition = checkBridgeState(messages, config.MQTT.base_topic, state);
+
+    if (bridgeTransition) {
+      state.pending_notifications.push(bridgeTransition);
+    }
+
+    let evalSummary = '';
+
+    if (bridgeTransition && bridgeTransition.transition === 'offline') {
+      // Bridge offline: skip device evaluation to avoid false positives from stale data
+      evalSummary = 'Bridge offline, device evaluation skipped';
+    } else {
+      // Bridge online or recovered: run normal device evaluation
+      const bridgeTopic = `${config.MQTT.base_topic}/bridge/devices`;
+      const registry = buildDeviceRegistry(messages.get(bridgeTopic));
+      mergeDeviceState(state, registry, messages, config.MQTT.base_topic);
+      const result = evaluateDevices(state, config);
+      evalSummary = `${registry.size} devices tracked. ${formatSummary(result)}`;
+    }
+
     state.last_run = new Date().toISOString();
+
+    // First write: persist evaluation results and pending notifications
     await writeState(STATE_PATH, state);
-    const evalSummary = formatSummary(result);
-    console.log(`Run complete. ${registry.size} devices tracked. ${evalSummary}`);
+
+    // Deliver notifications
+    try {
+      await deliverNotifications(state, config);
+    } catch (err) {
+      console.error('Notification delivery failed:', err.message);
+    }
+
+    // Second write: persist cleared pending_notifications
+    await writeState(STATE_PATH, state);
+
+    console.log(`Run complete. ${evalSummary}`);
   } finally {
     if (release) await release();
   }

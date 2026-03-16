@@ -6,12 +6,16 @@ jest.mock('../bin/lib/mqtt-collector');
 jest.mock('../bin/lib/device-registry');
 jest.mock('../bin/lib/state-store');
 jest.mock('../bin/lib/evaluator');
+jest.mock('../bin/lib/bridge-monitor');
+jest.mock('../bin/lib/notify');
 
 const { readConfig } = require('../bin/lib/config');
 const { collectMessages } = require('../bin/lib/mqtt-collector');
 const { buildDeviceRegistry } = require('../bin/lib/device-registry');
 const { readState, writeState, acquireLock } = require('../bin/lib/state-store');
 const { evaluateDevices } = require('../bin/lib/evaluator');
+const { checkBridgeState } = require('../bin/lib/bridge-monitor');
+const { deliverNotifications } = require('../bin/lib/notify');
 
 // We'll import mergeDeviceState after the module exists
 let mergeDeviceState;
@@ -281,6 +285,16 @@ describe('main lifecycle (happy path)', () => {
       return Promise.resolve();
     });
 
+    checkBridgeState.mockImplementation(() => {
+      if (callOrder) callOrder.push('checkBridgeState');
+      return null; // No bridge transition by default
+    });
+
+    deliverNotifications.mockImplementation(() => {
+      if (callOrder) callOrder.push('deliverNotifications');
+      return Promise.resolve({ sent: false, reason: 'no-transitions' });
+    });
+
     return releaseFn;
   }
 
@@ -300,8 +314,11 @@ describe('main lifecycle (happy path)', () => {
       'readConfig',
       'readState',
       'collectMessages',
+      'checkBridgeState',
       'buildDeviceRegistry',
       'evaluateDevices',
+      'writeState',
+      'deliverNotifications',
       'writeState',
       'release',
     ]);
@@ -389,5 +406,107 @@ describe('main lifecycle (happy path)', () => {
 
     expect(mockExit).toHaveBeenCalledWith(0);
     mockExit.mockRestore();
+  });
+});
+
+describe('bridge monitor and notification integration', () => {
+  function setupIntegrationMocks() {
+    const releaseFn = jest.fn().mockResolvedValue();
+    acquireLock.mockResolvedValue(releaseFn);
+
+    readConfig.mockReturnValue({
+      MQTT: { host: 'localhost', port: 1883, base_topic: 'zigbee2mqtt', username: '', password: '' },
+      CRON: { drain_seconds: 3 },
+      THRESHOLDS: { offline_hours: 24, battery_pct: 25 },
+      NOTIFICATIONS: { loxberry_enabled: true, email_enabled: true },
+      EXCLUSIONS: { devices: [] },
+    });
+
+    readState.mockReturnValue({ last_run: null, devices: {}, pending_notifications: [] });
+
+    const msgs = new Map();
+    msgs.set('zigbee2mqtt/bridge/devices', [
+      { ieee_address: '0xabc', friendly_name: 'Sensor', power_source: 'Battery', type: 'EndDevice', interview_completed: true, supported: true },
+    ]);
+    collectMessages.mockResolvedValue(msgs);
+
+    buildDeviceRegistry.mockReturnValue(new Map([
+      ['0xabc', { friendly_name: 'Sensor', power_source: 'Battery', type: 'EndDevice' }],
+    ]));
+
+    evaluateDevices.mockReturnValue({
+      transitions: [],
+      summary: { total_devices: 1, excluded: 0, evaluated: 1, alerts: { offline: 0, battery: 0, total: 0 }, transitions: { new_alerts: 0, recoveries: 0 } },
+      excludedCount: 0,
+    });
+
+    writeState.mockResolvedValue();
+    checkBridgeState.mockReturnValue(null);
+    deliverNotifications.mockResolvedValue({ sent: false, reason: 'no-transitions' });
+
+    return releaseFn;
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('normal run (bridge online): evaluateDevices runs, deliverNotifications called, writeState called twice', async () => {
+    setupIntegrationMocks();
+    checkBridgeState.mockReturnValue(null); // No transition = bridge is fine
+
+    const watchdog = require('../bin/watchdog');
+    await watchdog.main();
+
+    expect(checkBridgeState).toHaveBeenCalledTimes(1);
+    expect(evaluateDevices).toHaveBeenCalledTimes(1);
+    expect(deliverNotifications).toHaveBeenCalledTimes(1);
+    expect(writeState).toHaveBeenCalledTimes(2);
+  });
+
+  test('bridge offline: evaluateDevices NOT called, bridge transition added to pending, writeState called twice', async () => {
+    setupIntegrationMocks();
+    const bridgeTransition = { type: 'bridge', transition: 'offline', timestamp: '2026-03-16T10:00:00.000Z' };
+    checkBridgeState.mockReturnValue(bridgeTransition);
+
+    const watchdog = require('../bin/watchdog');
+    await watchdog.main();
+
+    expect(evaluateDevices).not.toHaveBeenCalled();
+    expect(buildDeviceRegistry).not.toHaveBeenCalled();
+    expect(deliverNotifications).toHaveBeenCalledTimes(1);
+    // Verify bridge transition was added to state.pending_notifications
+    const deliverCall = deliverNotifications.mock.calls[0];
+    expect(deliverCall[0].pending_notifications).toContainEqual(bridgeTransition);
+    expect(writeState).toHaveBeenCalledTimes(2);
+  });
+
+  test('bridge recovery: bridge transition added, evaluateDevices runs, deliverNotifications called', async () => {
+    setupIntegrationMocks();
+    const recoveryTransition = { type: 'bridge', transition: 'online', detail: '2026-03-16T09:00:00.000Z', timestamp: '2026-03-16T10:00:00.000Z' };
+    checkBridgeState.mockReturnValue(recoveryTransition);
+
+    const watchdog = require('../bin/watchdog');
+    await watchdog.main();
+
+    // Bridge recovery: evaluation still runs (bridge is online now)
+    expect(evaluateDevices).toHaveBeenCalledTimes(1);
+    expect(deliverNotifications).toHaveBeenCalledTimes(1);
+    // Verify bridge recovery transition was added
+    const deliverCall = deliverNotifications.mock.calls[0];
+    expect(deliverCall[0].pending_notifications).toContainEqual(recoveryTransition);
+  });
+
+  test('notification delivery failure: writeState still called second time, process does not crash', async () => {
+    setupIntegrationMocks();
+    deliverNotifications.mockRejectedValue(new Error('delivery exploded'));
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const watchdog = require('../bin/watchdog');
+    // Should not throw
+    await watchdog.main();
+
+    expect(writeState).toHaveBeenCalledTimes(2);
+    consoleSpy.mockRestore();
   });
 });
