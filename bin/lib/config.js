@@ -28,6 +28,7 @@ const DEFAULTS = {
     smtp_pass: '',
     smtp_from: '',
     smtp_to: '',
+    heartbeat_enabled: '0',
   },
   EXCLUSIONS: {
     devices: '',
@@ -42,7 +43,7 @@ const NUMERIC_FIELDS = {
 };
 
 const BOOLEAN_FIELDS = {
-  NOTIFICATIONS: ['loxberry_enabled', 'email_enabled'],
+  NOTIFICATIONS: ['loxberry_enabled', 'email_enabled', 'heartbeat_enabled'],
 };
 
 /**
