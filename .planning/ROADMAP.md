@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: MQTT Foundation and State Persistence** - Connect to MQTT broker, drain retained messages, build device registry, persist state with atomic writes (completed 2026-03-14)
 - [ ] **Phase 2: Threshold Evaluation and Alert Logic** - Track last-seen and battery, evaluate offline/low-battery thresholds, deduplicate alerts, handle exclusions
-- [ ] **Phase 3: Alert Delivery** - Send alerts via Loxberry notifications and SMTP email, detect bridge offline state
+- [x] **Phase 3: Alert Delivery** - Send alerts via Loxberry notifications and SMTP email, detect bridge offline state (completed 2026-03-16)
 - [ ] **Phase 4: Web Config UI** - PHP config pages for MQTT settings, thresholds, exclusions, notification preferences, and device status table
 - [ ] **Phase 5: Plugin Packaging and Release** - Loxberry addon directory structure, install/uninstall scripts, cron registration
 
@@ -64,7 +64,7 @@ Plans:
   2. Plugin sends alerts via SMTP email using configurable SMTP settings when enabled
   3. Alert messages include device friendly name, status (offline or low battery), and relevant detail (hours since last seen or battery percentage)
   4. Plugin detects bridge offline state via bridge/state topic and raises a separate alert
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 03-01-PLAN.md — Bridge monitor and email template modules (pure logic, TDD)
@@ -113,6 +113,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. MQTT Foundation and State Persistence | 4/4 | Complete   | 2026-03-14 |
 | 2. Threshold Evaluation and Alert Logic | 2/2 | Complete | 2026-03-14 |
-| 3. Alert Delivery | 2/3 | In Progress|  |
+| 3. Alert Delivery | 3/3 | Complete   | 2026-03-16 |
 | 4. Web Config UI | 0/? | Not started | - |
 | 5. Plugin Packaging and Release | 0/? | Not started | - |
