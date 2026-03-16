@@ -122,10 +122,11 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 ### Phase 05.1: Replace MQTT dependency with direct zigbee2mqtt file reading (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
+**Goal:** Replace MQTT broker dependency with direct reading of zigbee2mqtt's local data files (state.json, database.db) for device state, registry, and bridge monitoring. Remove MQTT config from UI, add z2m data path config with auto-detection.
 **Depends on:** Phase 5
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 05.1 to break down)
+- [ ] 05.1-01-PLAN.md — New z2m-reader module, rewrite device-registry and bridge-monitor, update config
+- [ ] 05.1-02-PLAN.md — Rewire watchdog.js, delete MQTT files, remove mqtt dependency
+- [ ] 05.1-03-PLAN.md — Update PHP UI, language file, postinstall, create verify-z2m script
