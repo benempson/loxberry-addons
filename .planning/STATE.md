@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-03-16T11:48:11.989Z"
-last_activity: 2026-03-16 -- Completed 05-02 (Web UI cron wiring and README)
+status: in-progress
+stopped_at: Completed 05.1-01-PLAN.md
+last_updated: "2026-03-16T17:11:00Z"
+last_activity: 2026-03-16 -- Completed 05.1-01 (z2m file reading modules)
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 5
-  total_plans: 14
-  completed_plans: 14
-  percent: 93
+  total_plans: 17
+  completed_plans: 15
+  percent: 88
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Proactively alert when Zigbee devices are offline or low on battery so they can be fixed before the user notices missing functionality around the house.
-**Current focus:** Phase 5: Plugin Packaging and Release -- in progress
+**Current focus:** Phase 5.1: Replace MQTT dependency with direct zigbee2mqtt file reading -- in progress
 
 ## Current Position
 
-Phase: 5 of 5 (Plugin Packaging and Release)
-Plan: 2 of 2 in current phase -- Complete
-Status: Complete
-Last activity: 2026-03-16 -- Completed 05-02 (Web UI cron wiring and README)
+Phase: 5.1 of 6 (Replace MQTT with z2m file reading)
+Plan: 1 of 3 in current phase -- Complete
+Status: In Progress
+Last activity: 2026-03-16 -- Completed 05.1-01 (z2m file reading modules)
 
-Progress: [█████████░] 93%
+Progress: [████████░░] 88%
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Progress: [█████████░] 93%
 | Phase 04 P03 | 2min | 2 tasks | 3 files |
 | Phase 05 P01 | 3min | 2 tasks | 7 files |
 | Phase 05 P02 | 2min | 2 tasks | 2 files |
+| Phase 05.1 P01 | 4min | 1 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -97,6 +98,9 @@ Recent decisions affecting current work:
 - [Phase 05]: bin/package.json carries only production fields (no devDependencies, scripts, or main)
 - [Phase 05]: postinstall.sh cron expression logic mirrors cron-helper.js with hours=1 special case
 - [Phase 05]: PHP interval_to_cron mirrors Node.js intervalToCron with hours===1 special case
+- [Phase 05.1]: database.db is newline-delimited JSON; reader splits lines and parses individually
+- [Phase 05.1]: readZ2mState retries once on JSON parse error for z2m mid-write race
+- [Phase 05.1]: Bridge health dual check: systemctl active + file freshness (10min default)
 
 ### Pending Todos
 
@@ -112,6 +116,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T11:44:47.510Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-03-16T17:11:00Z
+Stopped at: Completed 05.1-01-PLAN.md
 Resume file: None
