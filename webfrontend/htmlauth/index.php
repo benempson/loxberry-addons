@@ -161,6 +161,25 @@ function write_config($cfgfile, $config) {
 }
 
 // ------------------------------------------------------------------
+// Load state.json for Exclusions and Status tabs
+// ------------------------------------------------------------------
+$state_file = LBPDATADIR . '/state.json';
+$state_missing = true;
+$state = array();
+$devices = array();
+
+if (file_exists($state_file)) {
+    $state_raw = file_get_contents($state_file);
+    if ($state_raw !== false && $state_raw !== '') {
+        $state = json_decode($state_raw, true);
+        if (is_array($state) && isset($state['devices']) && is_array($state['devices'])) {
+            $devices = $state['devices'];
+            $state_missing = false;
+        }
+    }
+}
+
+// ------------------------------------------------------------------
 // POST handler: Save Settings
 // ------------------------------------------------------------------
 $error = '';
@@ -241,12 +260,119 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
         }
     }
+
+    if ($_POST['action'] === 'save_exclusions') {
+        $excluded = isset($_POST['excluded']) && is_array($_POST['excluded']) ? $_POST['excluded'] : array();
+        // Sanitize: keep only valid-looking IEEE addresses
+        $excluded = array_filter($excluded, function($v) {
+            return preg_match('/^0x[0-9a-fA-F]+$/', $v);
+        });
+        $current = read_config($cfgfile, $defaults);
+        $current['EXCLUSIONS']['devices'] = implode(',', $excluded);
+        if (write_config($cfgfile, $current)) {
+            header('Location: index.php?tab=exclusions&msg=saved');
+            exit;
+        } else {
+            $error = 'Could not write config file.';
+        }
+    }
+
+    if ($_POST['action'] === 'refresh') {
+        exec('node ' . LBPBINDIR . '/watchdog.js 2>&1', $output, $retval);
+        $refresh_msg = ($retval === 0) ? 'refresh_ok' : 'refresh_fail';
+        header('Location: index.php?tab=status&msg=' . $refresh_msg);
+        exit;
+    }
 }
 
 // ------------------------------------------------------------------
 // Read current config for form pre-fill
 // ------------------------------------------------------------------
 $config = read_config($cfgfile, $defaults);
+
+// ------------------------------------------------------------------
+// Exclusion list from INI
+// ------------------------------------------------------------------
+$excluded_iees = array();
+$excl_raw = trim($config['EXCLUSIONS']['devices']);
+if ($excl_raw !== '') {
+    $excluded_iees = array_map('trim', explode(',', $excl_raw));
+}
+
+// ------------------------------------------------------------------
+// Helper: format age from seconds to human-readable string
+// ------------------------------------------------------------------
+function formatAge($seconds) {
+    if ($seconds < 60) return 'just now';
+    if ($seconds < 3600) return floor($seconds / 60) . 'm ago';
+    if ($seconds < 86400) return floor($seconds / 3600) . 'h ago';
+    return floor($seconds / 86400) . 'd ago';
+}
+
+// ------------------------------------------------------------------
+// Build sorted device list for Exclusions tab
+// ------------------------------------------------------------------
+$sorted_devices = array();
+foreach ($devices as $ieee => $dev) {
+    $sorted_devices[$ieee] = isset($dev['friendly_name']) ? $dev['friendly_name'] : $ieee;
+}
+asort($sorted_devices); // alphabetical by friendly name
+
+// ------------------------------------------------------------------
+// Build table rows for Status tab
+// ------------------------------------------------------------------
+$table_rows = array();
+$now = time();
+foreach ($devices as $ieee => $dev) {
+    $name = isset($dev['friendly_name']) ? $dev['friendly_name'] : $ieee;
+    $last_seen = isset($dev['last_seen']) && $dev['last_seen'] ? $dev['last_seen'] : null;
+    $last_seen_ts = $last_seen ? strtotime($last_seen) : 0;
+    $last_seen_age = $last_seen_ts > 0 ? formatAge($now - $last_seen_ts) : 'Never';
+
+    $battery = null;
+    $battery_sort = -1;
+    $power_source = isset($dev['power_source']) ? $dev['power_source'] : '';
+    if (strtolower($power_source) !== 'mains' && isset($dev['battery'])) {
+        $battery = intval($dev['battery']);
+        $battery_sort = $battery;
+    }
+
+    // Determine alert status
+    $alert_status = 'OK';
+    $sort_priority = 3;
+    $alerts = isset($dev['alerts']) ? $dev['alerts'] : array();
+    if (isset($alerts['offline']['active']) && $alerts['offline']['active']) {
+        $alert_status = 'Offline';
+        $sort_priority = 0;
+    } elseif (isset($alerts['battery']['active']) && $alerts['battery']['active']) {
+        $alert_status = 'Low Battery';
+        $sort_priority = 1;
+    }
+    // Excluded overrides OK but not alerts
+    if ($sort_priority > 1 && in_array($ieee, $excluded_iees)) {
+        $alert_status = 'Excluded';
+        $sort_priority = 2;
+    }
+
+    $table_rows[] = array(
+        'ieee' => $ieee,
+        'name' => $name,
+        'last_seen_age' => $last_seen_age,
+        'last_seen_ts' => $last_seen_ts,
+        'battery' => $battery,
+        'battery_sort' => $battery_sort,
+        'alert_status' => $alert_status,
+        'sort_priority' => $sort_priority,
+    );
+}
+
+// Default sort: alerts first (by priority), then alphabetical by name
+usort($table_rows, function($a, $b) {
+    if ($a['sort_priority'] !== $b['sort_priority']) {
+        return $a['sort_priority'] - $b['sort_priority'];
+    }
+    return strcasecmp($a['name'], $b['name']);
+});
 
 // ------------------------------------------------------------------
 // Navbar (Loxberry SDK tabs)
@@ -476,10 +602,33 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
     </div>
 
     <!-- ============================================================ -->
-    <!-- EXCLUSIONS TAB (placeholder for Plan 02)                      -->
+    <!-- EXCLUSIONS TAB                                                -->
     <!-- ============================================================ -->
     <div id="tab-exclusions">
-        <p>Coming soon - device exclusion list will be added in a future update.</p>
+<?php if ($state_missing): ?>
+        <div style="background:#2196F3;color:#fff;padding:10px 15px;margin:10px 0;border-radius:4px;">
+            No device data yet. Run the watchdog first or click Refresh Data on the Device Status tab.
+        </div>
+<?php else: ?>
+        <input type="search" id="device-search" placeholder="Filter devices..." style="margin:10px 0;padding:8px;width:100%;box-sizing:border-box;">
+
+        <form method="post" action="index.php" data-ajax="false">
+            <input type="hidden" name="action" value="save_exclusions">
+
+<?php foreach ($sorted_devices as $ieee => $friendly_name): ?>
+            <div class="device-item" data-name="<?php echo htmlspecialchars($friendly_name); ?>" style="padding:4px 0;">
+                <input type="checkbox" name="excluded[]" value="<?php echo htmlspecialchars($ieee); ?>"
+                       id="dev-<?php echo htmlspecialchars($ieee); ?>"
+                       <?php echo in_array($ieee, $excluded_iees) ? 'checked' : ''; ?>>
+                <label for="dev-<?php echo htmlspecialchars($ieee); ?>"><?php echo htmlspecialchars($friendly_name); ?></label>
+            </div>
+<?php endforeach; ?>
+
+            <button type="submit" class="ui-btn ui-btn-b ui-corner-all" style="margin-top:15px;">
+                <?php echo htmlspecialchars($L['BUTTONS.SAVE']); ?>
+            </button>
+        </form>
+<?php endif; ?>
     </div>
 
     <!-- ============================================================ -->
@@ -515,6 +664,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Device search filter for Exclusions tab
+var deviceSearch = document.getElementById('device-search');
+if (deviceSearch) {
+    deviceSearch.addEventListener('input', function() {
+        var query = this.value.toLowerCase();
+        var items = document.querySelectorAll('.device-item');
+        for (var i = 0; i < items.length; i++) {
+            var name = (items[i].getAttribute('data-name') || '').toLowerCase();
+            items[i].style.display = name.indexOf(query) !== -1 ? '' : 'none';
+        }
+    });
+}
+
 // Password eye-toggle
 function togglePassword(fieldId) {
     var field = document.getElementById(fieldId);
@@ -529,6 +691,22 @@ function togglePassword(fieldId) {
         }
     }
 }
+
+// Tab activation from URL parameter
+<?php
+$tab_index = 0;
+if ($tab === 'exclusions') $tab_index = 1;
+if ($tab === 'status') $tab_index = 2;
+if ($tab_index > 0):
+?>
+if (typeof jQuery !== 'undefined') {
+    jQuery(document).on('pagecreate', function() {
+        try {
+            jQuery('[data-role="tabs"]').tabs("option", "active", <?php echo $tab_index; ?>);
+        } catch(e) {}
+    });
+}
+<?php endif; ?>
 </script>
 
 <?php
