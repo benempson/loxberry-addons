@@ -64,10 +64,12 @@ Plans:
   2. Plugin sends alerts via SMTP email using configurable SMTP settings when enabled
   3. Alert messages include device friendly name, status (offline or low battery), and relevant detail (hours since last seen or battery percentage)
   4. Plugin detects bridge offline state via bridge/state topic and raises a separate alert
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 03-01: TBD
+- [ ] 03-01-PLAN.md — Bridge monitor and email template modules (pure logic, TDD)
+- [ ] 03-02-PLAN.md — Loxberry notify and SMTP email channel modules
+- [ ] 03-03-PLAN.md — Notification dispatcher and watchdog main wiring
 
 **Research flag**: VERIFY Loxberry notification API on live system -- exact path and CLI arguments for the notification helper. Test notification delivery in isolation before wiring to the alert pipeline.
 
@@ -111,6 +113,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. MQTT Foundation and State Persistence | 4/4 | Complete   | 2026-03-14 |
 | 2. Threshold Evaluation and Alert Logic | 1/2 | In Progress | - |
-| 3. Alert Delivery | 0/? | Not started | - |
+| 3. Alert Delivery | 0/3 | Not started | - |
 | 4. Web Config UI | 0/? | Not started | - |
 | 5. Plugin Packaging and Release | 0/? | Not started | - |
