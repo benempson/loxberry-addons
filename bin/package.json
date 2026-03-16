@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "ini": "^5.0.0",
-    "mqtt": "^5.15.0",
+
     "nodemailer": "^8.0.2",
     "proper-lockfile": "^4.1.2",
     "write-file-atomic": "^7.0.0"

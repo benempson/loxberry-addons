@@ -22,12 +22,8 @@ describe('INI round-trip (PHP Config_Lite format)', () => {
   test('full INI with all sections and fields is correctly parsed', () => {
     // Config_Lite writes "key = value" with spaces around =
     const ini = [
-      '[MQTT]',
-      'host = 192.168.1.100',
-      'port = 1883',
-      'base_topic = zigbee2mqtt',
-      'username = myuser',
-      'password = mypass',
+      '[Z2M]',
+      'z2m_data_path = /opt/zigbee2mqtt/data',
       '',
       '[THRESHOLDS]',
       'offline_hours = 48',
@@ -35,7 +31,6 @@ describe('INI round-trip (PHP Config_Lite format)', () => {
       '',
       '[CRON]',
       'interval_minutes = 30',
-      'drain_seconds = 5',
       '',
       '[NOTIFICATIONS]',
       'loxberry_enabled = 1',
@@ -55,17 +50,12 @@ describe('INI round-trip (PHP Config_Lite format)', () => {
     fs.writeFileSync(tmpCfg, ini);
     const config = readConfig(tmpCfg);
 
-    expect(config.MQTT.host).toBe('192.168.1.100');
-    expect(config.MQTT.port).toBe(1883);
-    expect(config.MQTT.base_topic).toBe('zigbee2mqtt');
-    expect(config.MQTT.username).toBe('myuser');
-    expect(config.MQTT.password).toBe('mypass');
+    expect(config.Z2M.z2m_data_path).toBe('/opt/zigbee2mqtt/data');
 
     expect(config.THRESHOLDS.offline_hours).toBe(48);
     expect(config.THRESHOLDS.battery_pct).toBe(20);
 
     expect(config.CRON.interval_minutes).toBe(30);
-    expect(config.CRON.drain_seconds).toBe(5);
 
     expect(config.NOTIFICATIONS.loxberry_enabled).toBe(true);
     expect(config.NOTIFICATIONS.email_enabled).toBe(true);
@@ -101,16 +91,12 @@ describe('INI round-trip (PHP Config_Lite format)', () => {
 
   test('numeric fields written as string digits are correctly coerced to integers', () => {
     const ini = [
-      '[MQTT]',
-      'port = 8883',
-      '',
       '[THRESHOLDS]',
       'offline_hours = 72',
       'battery_pct = 10',
       '',
       '[CRON]',
       'interval_minutes = 15',
-      'drain_seconds = 10',
       '',
       '[NOTIFICATIONS]',
       'smtp_port = 25',
@@ -119,16 +105,12 @@ describe('INI round-trip (PHP Config_Lite format)', () => {
     fs.writeFileSync(tmpCfg, ini);
     const config = readConfig(tmpCfg);
 
-    expect(typeof config.MQTT.port).toBe('number');
-    expect(config.MQTT.port).toBe(8883);
     expect(typeof config.THRESHOLDS.offline_hours).toBe('number');
     expect(config.THRESHOLDS.offline_hours).toBe(72);
     expect(typeof config.THRESHOLDS.battery_pct).toBe('number');
     expect(config.THRESHOLDS.battery_pct).toBe(10);
     expect(typeof config.CRON.interval_minutes).toBe('number');
     expect(config.CRON.interval_minutes).toBe(15);
-    expect(typeof config.CRON.drain_seconds).toBe('number');
-    expect(config.CRON.drain_seconds).toBe(10);
     expect(typeof config.NOTIFICATIONS.smtp_port).toBe('number');
     expect(config.NOTIFICATIONS.smtp_port).toBe(25);
   });
