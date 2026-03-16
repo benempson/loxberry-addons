@@ -1,0 +1,537 @@
+<?php
+/**
+ * Zigbee Watchdog - Configuration Page
+ *
+ * Loxberry plugin web interface for configuring MQTT, thresholds,
+ * notifications, exclusions, and viewing device status.
+ */
+
+// Loxberry SDK
+require_once "loxberry_system.php";
+require_once "loxberry_web.php";
+
+// Language support
+$L = LBSystem::readlanguage("language.ini");
+
+// Config file path
+$cfgfile = LBPCONFIGDIR . "/watchdog.cfg";
+
+// ------------------------------------------------------------------
+// Default values (must match bin/lib/config.js DEFAULTS)
+// ------------------------------------------------------------------
+$defaults = array(
+    'MQTT' => array(
+        'host'       => 'localhost',
+        'port'       => '1883',
+        'base_topic' => 'zigbee2mqtt',
+        'username'   => '',
+        'password'   => '',
+    ),
+    'THRESHOLDS' => array(
+        'offline_hours' => '24',
+        'battery_pct'   => '25',
+    ),
+    'CRON' => array(
+        'interval_minutes' => '60',
+        'drain_seconds'    => '3',
+    ),
+    'NOTIFICATIONS' => array(
+        'loxberry_enabled'  => '0',
+        'email_enabled'     => '0',
+        'smtp_host'         => '',
+        'smtp_port'         => '587',
+        'smtp_user'         => '',
+        'smtp_pass'         => '',
+        'smtp_from'         => '',
+        'smtp_to'           => '',
+        'heartbeat_enabled' => '0',
+    ),
+    'EXCLUSIONS' => array(
+        'devices' => '',
+    ),
+);
+
+// ------------------------------------------------------------------
+// INI Read helpers
+// ------------------------------------------------------------------
+
+/**
+ * Read config using Config_Lite if available, else parse_ini_file fallback.
+ * Returns a nested array merged over defaults.
+ */
+function read_config($cfgfile, $defaults) {
+    $config = $defaults;
+
+    // Try Config_Lite first
+    $config_lite_path = LBHOMEDIR . '/libs/phplib/Config/Lite.php';
+    if (file_exists($config_lite_path)) {
+        require_once $config_lite_path;
+        if (file_exists($cfgfile)) {
+            try {
+                $cfg = new Config_Lite($cfgfile, LOCK_EX, INI_SCANNER_RAW);
+                foreach ($defaults as $section => $keys) {
+                    foreach ($keys as $key => $default) {
+                        try {
+                            $val = $cfg->get($section, $key);
+                            if ($val !== null) {
+                                $config[$section][$key] = $val;
+                            }
+                        } catch (Exception $e) {
+                            // Key not in file, keep default
+                        }
+                    }
+                }
+            } catch (Exception $e) {
+                error_log("Zigbee Watchdog: Config_Lite read error: " . $e->getMessage());
+            }
+        }
+        return $config;
+    }
+
+    // Fallback: parse_ini_file
+    if (file_exists($cfgfile)) {
+        $parsed = parse_ini_file($cfgfile, true, INI_SCANNER_RAW);
+        if ($parsed !== false) {
+            foreach ($defaults as $section => $keys) {
+                if (isset($parsed[$section])) {
+                    foreach ($keys as $key => $default) {
+                        if (isset($parsed[$section][$key])) {
+                            $config[$section][$key] = $parsed[$section][$key];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return $config;
+}
+
+/**
+ * Write config to INI file.
+ * Uses Config_Lite if available, manual write as fallback.
+ * Values containing ; or = are double-quoted for ini@5.x compatibility.
+ */
+function write_config($cfgfile, $config) {
+    $config_lite_path = LBHOMEDIR . '/libs/phplib/Config/Lite.php';
+    if (file_exists($config_lite_path)) {
+        require_once $config_lite_path;
+        // Create new Config_Lite or load existing
+        try {
+            if (file_exists($cfgfile)) {
+                $cfg = new Config_Lite($cfgfile, LOCK_EX, INI_SCANNER_RAW);
+            } else {
+                // Write a blank file so Config_Lite can open it
+                file_put_contents($cfgfile, '');
+                $cfg = new Config_Lite($cfgfile, LOCK_EX, INI_SCANNER_RAW);
+            }
+            foreach ($config as $section => $keys) {
+                foreach ($keys as $key => $value) {
+                    $cfg->set($section, $key, $value);
+                }
+            }
+            $cfg->save();
+            return true;
+        } catch (Exception $e) {
+            error_log("Zigbee Watchdog: Config_Lite write error: " . $e->getMessage());
+            // Fall through to manual write
+        }
+    }
+
+    // Manual INI write fallback
+    $output = '';
+    foreach ($config as $section => $keys) {
+        $output .= "[{$section}]\n";
+        foreach ($keys as $key => $value) {
+            // Quote values containing ; or = to prevent ini@5.x comment stripping
+            if (strpos($value, ';') !== false || strpos($value, '=') !== false) {
+                $value = '"' . $value . '"';
+            }
+            $output .= "{$key} = {$value}\n";
+        }
+        $output .= "\n";
+    }
+
+    $dir = dirname($cfgfile);
+    if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+    }
+
+    return file_put_contents($cfgfile, $output, LOCK_EX) !== false;
+}
+
+// ------------------------------------------------------------------
+// POST handler: Save Settings
+// ------------------------------------------------------------------
+$error = '';
+$msg = isset($_GET['msg']) ? $_GET['msg'] : '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+
+    if ($_POST['action'] === 'save_settings') {
+        // Collect form values
+        $new_config = array(
+            'MQTT' => array(
+                'host'       => trim($_POST['mqtt_host'] ?? ''),
+                'port'       => trim($_POST['mqtt_port'] ?? '1883'),
+                'base_topic' => trim($_POST['mqtt_topic'] ?? 'zigbee2mqtt'),
+                'username'   => trim($_POST['mqtt_user'] ?? ''),
+                'password'   => $_POST['mqtt_pass'] ?? '',
+            ),
+            'THRESHOLDS' => array(
+                'offline_hours' => trim($_POST['offline_hours'] ?? '24'),
+                'battery_pct'   => trim($_POST['battery_pct'] ?? '25'),
+            ),
+            'CRON' => array(
+                'interval_minutes' => trim($_POST['cron_interval'] ?? '60'),
+                'drain_seconds'    => trim($_POST['drain_seconds'] ?? '3'),
+            ),
+            'NOTIFICATIONS' => array(
+                'loxberry_enabled'  => ($_POST['lb_notify'] ?? '0') === '1' ? '1' : '0',
+                'email_enabled'     => ($_POST['email_enabled'] ?? '0') === '1' ? '1' : '0',
+                'smtp_host'         => trim($_POST['smtp_host'] ?? ''),
+                'smtp_port'         => trim($_POST['smtp_port'] ?? '587'),
+                'smtp_user'         => trim($_POST['smtp_user'] ?? ''),
+                'smtp_pass'         => $_POST['smtp_pass'] ?? '',
+                'smtp_from'         => trim($_POST['smtp_from'] ?? ''),
+                'smtp_to'           => trim($_POST['smtp_to'] ?? ''),
+                'heartbeat_enabled' => ($_POST['heartbeat'] ?? '0') === '1' ? '1' : '0',
+            ),
+        );
+
+        // Preserve EXCLUSIONS from existing config (edited on Exclusions tab)
+        $current = read_config($cfgfile, $defaults);
+        $new_config['EXCLUSIONS'] = $current['EXCLUSIONS'];
+
+        // Server-side validation
+        $errors = array();
+        $port = intval($new_config['MQTT']['port']);
+        if ($port < 1 || $port > 65535) {
+            $errors[] = 'MQTT port must be between 1 and 65535.';
+        }
+        $offline = intval($new_config['THRESHOLDS']['offline_hours']);
+        if ($offline < 1) {
+            $errors[] = 'Offline hours must be at least 1.';
+        }
+        $battery = intval($new_config['THRESHOLDS']['battery_pct']);
+        if ($battery < 1 || $battery > 100) {
+            $errors[] = 'Battery threshold must be between 1 and 100.';
+        }
+        $interval = intval($new_config['CRON']['interval_minutes']);
+        if ($interval < 1) {
+            $errors[] = 'Check interval must be at least 1 minute.';
+        }
+        $drain = intval($new_config['CRON']['drain_seconds']);
+        if ($drain < 1 || $drain > 30) {
+            $errors[] = 'Drain time must be between 1 and 30 seconds.';
+        }
+        $smtp_port = intval($new_config['NOTIFICATIONS']['smtp_port']);
+        if ($new_config['NOTIFICATIONS']['email_enabled'] === '1' && ($smtp_port < 1 || $smtp_port > 65535)) {
+            $errors[] = 'SMTP port must be between 1 and 65535.';
+        }
+
+        if (!empty($errors)) {
+            $error = implode(' ', $errors);
+        } else {
+            if (write_config($cfgfile, $new_config)) {
+                header('Location: index.php?msg=saved');
+                exit;
+            } else {
+                $error = $L['MESSAGES.SAVE_ERROR'] . 'Could not write config file.';
+            }
+        }
+    }
+}
+
+// ------------------------------------------------------------------
+// Read current config for form pre-fill
+// ------------------------------------------------------------------
+$config = read_config($cfgfile, $defaults);
+
+// ------------------------------------------------------------------
+// Navbar (Loxberry SDK tabs)
+// ------------------------------------------------------------------
+$tab = isset($_GET['tab']) ? $_GET['tab'] : 'settings';
+
+$navbar[1]['Name'] = $L['NAV.SETTINGS'];
+$navbar[1]['URL']  = 'index.php';
+if ($tab === 'settings') $navbar[1]['active'] = true;
+
+$navbar[2]['Name'] = $L['NAV.EXCLUSIONS'];
+$navbar[2]['URL']  = 'index.php?tab=exclusions';
+if ($tab === 'exclusions') $navbar[2]['active'] = true;
+
+$navbar[3]['Name'] = $L['NAV.STATUS'];
+$navbar[3]['URL']  = 'index.php?tab=status';
+if ($tab === 'status') $navbar[3]['active'] = true;
+
+// ------------------------------------------------------------------
+// Header
+// ------------------------------------------------------------------
+LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
+
+?>
+
+<!-- Flash messages -->
+<?php if ($msg === 'saved'): ?>
+<div style="background:#4CAF50;color:#fff;padding:10px 15px;margin:10px 0;border-radius:4px;">
+    <?php echo htmlspecialchars($L['MESSAGES.SAVED']); ?>
+</div>
+<?php endif; ?>
+
+<?php if (!empty($error)): ?>
+<div style="background:#f44336;color:#fff;padding:10px 15px;margin:10px 0;border-radius:4px;">
+    <?php echo htmlspecialchars($error); ?>
+</div>
+<?php endif; ?>
+
+<!-- Tab content container -->
+<div data-role="tabs">
+    <div data-role="navbar">
+        <ul>
+            <li><a href="#tab-settings" <?php echo $tab === 'settings' ? 'class="ui-btn-active"' : ''; ?>><?php echo htmlspecialchars($L['NAV.SETTINGS']); ?></a></li>
+            <li><a href="#tab-exclusions" <?php echo $tab === 'exclusions' ? 'class="ui-btn-active"' : ''; ?>><?php echo htmlspecialchars($L['NAV.EXCLUSIONS']); ?></a></li>
+            <li><a href="#tab-status" <?php echo $tab === 'status' ? 'class="ui-btn-active"' : ''; ?>><?php echo htmlspecialchars($L['NAV.STATUS']); ?></a></li>
+        </ul>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SETTINGS TAB                                                  -->
+    <!-- ============================================================ -->
+    <div id="tab-settings">
+        <form method="post" action="index.php" data-ajax="false">
+            <input type="hidden" name="action" value="save_settings">
+
+            <!-- MQTT Section -->
+            <h3><?php echo htmlspecialchars($L['SETTINGS.SECTION_MQTT']); ?></h3>
+
+            <div data-role="fieldcontain">
+                <label for="mqtt_host"><?php echo htmlspecialchars($L['SETTINGS.MQTT_HOST']); ?></label>
+                <input type="text" name="mqtt_host" id="mqtt_host"
+                       value="<?php echo htmlspecialchars($config['MQTT']['host']); ?>"
+                       required placeholder="localhost">
+            </div>
+
+            <div data-role="fieldcontain">
+                <label for="mqtt_port"><?php echo htmlspecialchars($L['SETTINGS.MQTT_PORT']); ?></label>
+                <input type="number" name="mqtt_port" id="mqtt_port"
+                       value="<?php echo htmlspecialchars($config['MQTT']['port']); ?>"
+                       required min="1" max="65535">
+            </div>
+
+            <div data-role="fieldcontain">
+                <label for="mqtt_topic"><?php echo htmlspecialchars($L['SETTINGS.MQTT_TOPIC']); ?></label>
+                <input type="text" name="mqtt_topic" id="mqtt_topic"
+                       value="<?php echo htmlspecialchars($config['MQTT']['base_topic']); ?>"
+                       required placeholder="zigbee2mqtt">
+            </div>
+
+            <div data-role="fieldcontain">
+                <label for="mqtt_user"><?php echo htmlspecialchars($L['SETTINGS.MQTT_USER']); ?></label>
+                <input type="text" name="mqtt_user" id="mqtt_user"
+                       value="<?php echo htmlspecialchars($config['MQTT']['username']); ?>"
+                       placeholder="">
+            </div>
+
+            <div data-role="fieldcontain" style="position:relative;">
+                <label for="mqtt_pass"><?php echo htmlspecialchars($L['SETTINGS.MQTT_PASS']); ?></label>
+                <input type="password" name="mqtt_pass" id="mqtt_pass"
+                       value="<?php echo htmlspecialchars($config['MQTT']['password']); ?>">
+                <a href="#" onclick="togglePassword('mqtt_pass'); return false;"
+                   class="pw-toggle" style="position:absolute;right:10px;top:35px;z-index:10;">
+                    <span id="mqtt_pass_icon">Show</span>
+                </a>
+            </div>
+
+            <!-- Thresholds Section -->
+            <h3><?php echo htmlspecialchars($L['SETTINGS.SECTION_THRESHOLDS']); ?></h3>
+
+            <div data-role="fieldcontain">
+                <label for="offline_hours"><?php echo htmlspecialchars($L['SETTINGS.OFFLINE_HOURS']); ?></label>
+                <input type="number" name="offline_hours" id="offline_hours"
+                       value="<?php echo htmlspecialchars($config['THRESHOLDS']['offline_hours']); ?>"
+                       required min="1">
+                <p class="ui-body-d" style="font-size:0.85em;margin-top:2px;"><?php echo htmlspecialchars($L['SETTINGS.OFFLINE_HOURS_HELP']); ?></p>
+            </div>
+
+            <div data-role="fieldcontain">
+                <label for="battery_pct"><?php echo htmlspecialchars($L['SETTINGS.BATTERY_PCT']); ?></label>
+                <input type="number" name="battery_pct" id="battery_pct"
+                       value="<?php echo htmlspecialchars($config['THRESHOLDS']['battery_pct']); ?>"
+                       required min="1" max="100">
+                <p class="ui-body-d" style="font-size:0.85em;margin-top:2px;"><?php echo htmlspecialchars($L['SETTINGS.BATTERY_PCT_HELP']); ?></p>
+            </div>
+
+            <!-- Cron Section -->
+            <h3><?php echo htmlspecialchars($L['SETTINGS.SECTION_CRON']); ?></h3>
+
+            <div data-role="fieldcontain">
+                <label for="cron_interval"><?php echo htmlspecialchars($L['SETTINGS.CRON_INTERVAL']); ?></label>
+                <input type="number" name="cron_interval" id="cron_interval"
+                       value="<?php echo htmlspecialchars($config['CRON']['interval_minutes']); ?>"
+                       required min="1">
+                <p class="ui-body-d" style="font-size:0.85em;margin-top:2px;"><?php echo htmlspecialchars($L['SETTINGS.CRON_INTERVAL_HELP']); ?></p>
+            </div>
+
+            <div data-role="fieldcontain">
+                <label for="drain_seconds"><?php echo htmlspecialchars($L['SETTINGS.DRAIN_SECONDS']); ?></label>
+                <input type="number" name="drain_seconds" id="drain_seconds"
+                       value="<?php echo htmlspecialchars($config['CRON']['drain_seconds']); ?>"
+                       required min="1" max="30">
+                <p class="ui-body-d" style="font-size:0.85em;margin-top:2px;"><?php echo htmlspecialchars($L['SETTINGS.DRAIN_SECONDS_HELP']); ?></p>
+            </div>
+
+            <!-- Notifications Section -->
+            <h3><?php echo htmlspecialchars($L['SETTINGS.SECTION_NOTIFICATIONS']); ?></h3>
+
+            <div data-role="fieldcontain">
+                <label for="lb_notify"><?php echo htmlspecialchars($L['SETTINGS.LB_NOTIFY']); ?></label>
+                <select name="lb_notify" id="lb_notify" data-role="slider">
+                    <option value="0" <?php echo $config['NOTIFICATIONS']['loxberry_enabled'] !== '1' ? 'selected' : ''; ?>>Off</option>
+                    <option value="1" <?php echo $config['NOTIFICATIONS']['loxberry_enabled'] === '1' ? 'selected' : ''; ?>>On</option>
+                </select>
+            </div>
+
+            <div data-role="fieldcontain">
+                <label for="email_enabled"><?php echo htmlspecialchars($L['SETTINGS.EMAIL_ENABLED']); ?></label>
+                <select name="email_enabled" id="email_enabled" data-role="slider">
+                    <option value="0" <?php echo $config['NOTIFICATIONS']['email_enabled'] !== '1' ? 'selected' : ''; ?>>Off</option>
+                    <option value="1" <?php echo $config['NOTIFICATIONS']['email_enabled'] === '1' ? 'selected' : ''; ?>>On</option>
+                </select>
+            </div>
+
+            <div data-role="fieldcontain">
+                <label for="heartbeat"><?php echo htmlspecialchars($L['SETTINGS.HEARTBEAT']); ?></label>
+                <select name="heartbeat" id="heartbeat" data-role="slider">
+                    <option value="0" <?php echo $config['NOTIFICATIONS']['heartbeat_enabled'] !== '1' ? 'selected' : ''; ?>>Off</option>
+                    <option value="1" <?php echo $config['NOTIFICATIONS']['heartbeat_enabled'] === '1' ? 'selected' : ''; ?>>On</option>
+                </select>
+                <p class="ui-body-d" style="font-size:0.85em;margin-top:2px;"><?php echo htmlspecialchars($L['SETTINGS.HEARTBEAT_HELP']); ?></p>
+            </div>
+
+            <!-- SMTP Fields (shown only when email is enabled) -->
+            <div id="smtp-fields" style="<?php echo $config['NOTIFICATIONS']['email_enabled'] !== '1' ? 'display:none;' : ''; ?>">
+                <h4><?php echo htmlspecialchars($L['SETTINGS.SECTION_SMTP']); ?></h4>
+
+                <div data-role="fieldcontain">
+                    <label for="smtp_host"><?php echo htmlspecialchars($L['SETTINGS.SMTP_HOST']); ?></label>
+                    <input type="text" name="smtp_host" id="smtp_host"
+                           value="<?php echo htmlspecialchars($config['NOTIFICATIONS']['smtp_host']); ?>"
+                           placeholder="smtp.example.com">
+                </div>
+
+                <div data-role="fieldcontain">
+                    <label for="smtp_port"><?php echo htmlspecialchars($L['SETTINGS.SMTP_PORT']); ?></label>
+                    <input type="number" name="smtp_port" id="smtp_port"
+                           value="<?php echo htmlspecialchars($config['NOTIFICATIONS']['smtp_port']); ?>"
+                           min="1" max="65535">
+                </div>
+
+                <div data-role="fieldcontain">
+                    <label for="smtp_user"><?php echo htmlspecialchars($L['SETTINGS.SMTP_USER']); ?></label>
+                    <input type="text" name="smtp_user" id="smtp_user"
+                           value="<?php echo htmlspecialchars($config['NOTIFICATIONS']['smtp_user']); ?>">
+                </div>
+
+                <div data-role="fieldcontain" style="position:relative;">
+                    <label for="smtp_pass"><?php echo htmlspecialchars($L['SETTINGS.SMTP_PASS']); ?></label>
+                    <input type="password" name="smtp_pass" id="smtp_pass"
+                           value="<?php echo htmlspecialchars($config['NOTIFICATIONS']['smtp_pass']); ?>">
+                    <a href="#" onclick="togglePassword('smtp_pass'); return false;"
+                       class="pw-toggle" style="position:absolute;right:10px;top:35px;z-index:10;">
+                        <span id="smtp_pass_icon">Show</span>
+                    </a>
+                </div>
+
+                <div data-role="fieldcontain">
+                    <label for="smtp_from"><?php echo htmlspecialchars($L['SETTINGS.SMTP_FROM']); ?></label>
+                    <input type="email" name="smtp_from" id="smtp_from"
+                           value="<?php echo htmlspecialchars($config['NOTIFICATIONS']['smtp_from']); ?>"
+                           placeholder="alerts@example.com">
+                </div>
+
+                <div data-role="fieldcontain">
+                    <label for="smtp_to"><?php echo htmlspecialchars($L['SETTINGS.SMTP_TO']); ?></label>
+                    <input type="email" name="smtp_to" id="smtp_to"
+                           value="<?php echo htmlspecialchars($config['NOTIFICATIONS']['smtp_to']); ?>"
+                           placeholder="admin@example.com">
+                </div>
+            </div>
+
+            <!-- Test buttons (non-functional placeholders, wired in Plan 03) -->
+            <div style="margin:15px 0;">
+                <button type="button" id="btn-test-mqtt" class="ui-btn ui-btn-inline ui-mini" disabled>
+                    <?php echo htmlspecialchars($L['BUTTONS.TEST_MQTT']); ?>
+                </button>
+                <button type="button" id="btn-test-email" class="ui-btn ui-btn-inline ui-mini" disabled>
+                    <?php echo htmlspecialchars($L['BUTTONS.TEST_EMAIL']); ?>
+                </button>
+            </div>
+
+            <!-- Save button -->
+            <button type="submit" class="ui-btn ui-btn-b ui-corner-all">
+                <?php echo htmlspecialchars($L['BUTTONS.SAVE']); ?>
+            </button>
+        </form>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- EXCLUSIONS TAB (placeholder for Plan 02)                      -->
+    <!-- ============================================================ -->
+    <div id="tab-exclusions">
+        <p>Coming soon - device exclusion list will be added in a future update.</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- STATUS TAB (placeholder for Plan 02)                          -->
+    <!-- ============================================================ -->
+    <div id="tab-status">
+        <p>Coming soon - device status table will be added in a future update.</p>
+    </div>
+
+</div>
+
+<!-- Inline JS: SMTP toggle and password reveal -->
+<script>
+// Toggle SMTP fields visibility based on email_enabled slider
+document.addEventListener('DOMContentLoaded', function() {
+    var emailSelect = document.getElementById('email_enabled');
+    var smtpFields = document.getElementById('smtp-fields');
+
+    function updateSmtpVisibility() {
+        if (emailSelect.value === '1') {
+            smtpFields.style.display = 'block';
+        } else {
+            smtpFields.style.display = 'none';
+        }
+    }
+
+    if (emailSelect && smtpFields) {
+        emailSelect.addEventListener('change', updateSmtpVisibility);
+        // Also handle jQuery Mobile slider change event
+        if (typeof jQuery !== 'undefined') {
+            jQuery(emailSelect).on('slidestop', updateSmtpVisibility);
+        }
+    }
+});
+
+// Password eye-toggle
+function togglePassword(fieldId) {
+    var field = document.getElementById(fieldId);
+    var icon = document.getElementById(fieldId + '_icon');
+    if (field && icon) {
+        if (field.type === 'password') {
+            field.type = 'text';
+            icon.textContent = 'Hide';
+        } else {
+            field.type = 'password';
+            icon.textContent = 'Show';
+        }
+    }
+}
+</script>
+
+<?php
+// Footer
+LBWeb::lbfooter();
+?>
