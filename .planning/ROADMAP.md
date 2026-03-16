@@ -101,10 +101,11 @@ Plans:
   2. Plugin includes an idempotent postinstall.sh that preserves user config on upgrade
   3. Plugin includes an uninstall.sh that cleanly removes all plugin artifacts
   4. Plugin registers its cron job via Loxberry's cron system at the user-configured interval
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 05-01: TBD
+- [ ] 05-01-PLAN.md — Plugin scaffold: plugin.cfg, postinstall.sh, uninstall script, .gitattributes, cron-helper module
+- [ ] 05-02-PLAN.md — PHP cron re-registration on save, interval dropdown, README.md
 
 ## Progress
 
@@ -117,4 +118,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Threshold Evaluation and Alert Logic | 2/2 | Complete | 2026-03-14 |
 | 3. Alert Delivery | 3/3 | Complete   | 2026-03-16 |
 | 4. Web Config UI | 0/3 | Planning complete | - |
-| 5. Plugin Packaging and Release | 0/? | Not started | - |
+| 5. Plugin Packaging and Release | 0/2 | Planning complete | - |
