@@ -1,0 +1,14 @@
+#!/bin/bash
+# uninstall -- runs as ROOT during plugin removal
+# Loxberry automatically removes plugin directories; this handles extras
+
+# Remove cron.d entry
+rm -f "$LBHOMEDIR/system/cron/cron.d/$1" 2>/dev/null
+
+# Clear pending notifications
+if [ -f "$LBHOMEDIR/libs/bashlib/notify.sh" ]; then
+    . "$LBHOMEDIR/libs/bashlib/notify.sh"
+    delete_notifications "$1" watchdog 2>/dev/null
+fi
+
+exit 0

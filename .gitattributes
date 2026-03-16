@@ -1,0 +1,2 @@
+*.sh text eol=lf
+uninstall/uninstall text eol=lf
