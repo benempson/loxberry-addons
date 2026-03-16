@@ -47,9 +47,9 @@
 
 ### Plugin Packaging (PLUG)
 
-- [ ] **PLUG-01**: Plugin follows Loxberry addon directory structure conventions
-- [ ] **PLUG-02**: Plugin includes idempotent `postinstall.sh` that preserves user config on upgrade
-- [ ] **PLUG-03**: Plugin includes `uninstall.sh` for clean removal
+- [x] **PLUG-01**: Plugin follows Loxberry addon directory structure conventions
+- [x] **PLUG-02**: Plugin includes idempotent `postinstall.sh` that preserves user config on upgrade
+- [x] **PLUG-03**: Plugin includes `uninstall.sh` for clean removal
 - [ ] **PLUG-04**: Plugin registers cron job via Loxberry's cron system
 - [x] **PLUG-05**: Config stored as INI file readable by both Node.js and PHP
 
@@ -109,9 +109,9 @@
 | CONF-04 | Phase 4 | Complete |
 | CONF-05 | Phase 4 | Complete |
 | CONF-06 | Phase 4 | Complete |
-| PLUG-01 | Phase 5 | Pending |
-| PLUG-02 | Phase 5 | Pending |
-| PLUG-03 | Phase 5 | Pending |
+| PLUG-01 | Phase 5 | Complete |
+| PLUG-02 | Phase 5 | Complete |
+| PLUG-03 | Phase 5 | Complete |
 | PLUG-04 | Phase 5 | Pending |
 | PLUG-05 | Phase 1 | Complete |
 

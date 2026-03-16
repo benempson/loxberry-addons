@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 5 context gathered
-last_updated: "2026-03-16T11:16:51.671Z"
+last_updated: "2026-03-16T11:41:05.825Z"
 last_activity: 2026-03-16 -- Completed 04-02 (Exclusions and Device Status tabs)
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 12
-  completed_plans: 12
+  total_plans: 14
+  completed_plans: 13
   percent: 92
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Proactively alert when Zigbee devices are offline or low on battery so they can be fixed before the user notices missing functionality around the house.
-**Current focus:** Phase 4: Web Config UI -- in progress
+**Current focus:** Phase 5: Plugin Packaging and Release -- in progress
 
 ## Current Position
 
-Phase: 4 of 5 (Web Config UI)
-Plan: 2 of 3 in current phase -- Complete
+Phase: 5 of 5 (Plugin Packaging and Release)
+Plan: 1 of 2 in current phase -- Complete
 Status: In Progress
-Last activity: 2026-03-16 -- Completed 04-02 (Exclusions and Device Status tabs)
+Last activity: 2026-03-16 -- Completed 05-01 (Plugin scaffold and lifecycle scripts)
 
-Progress: [█████████░] 92%
+Progress: [█████████░] 93%
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [█████████░] 92%
 | Phase 04 P01 | 4min | 2 tasks | 3 files |
 | Phase 04 P02 | 3min | 2 tasks | 1 files |
 | Phase 04 P03 | 2min | 2 tasks | 3 files |
+| Phase 05 P01 | 3min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,9 @@ Recent decisions affecting current work:
 - [Phase 04]: Excluded status overrides OK but not active alerts (offline/battery shown for excluded devices)
 - [Phase 04]: Test buttons save settings before running test scripts so latest form values are used
 - [Phase 04]: Single form with JS onclick to switch hidden action field for test buttons (DRY over separate forms)
+- [Phase 05]: intervalToCron defaults invalid/zero/negative to 60min (hourly) for safe fallback
+- [Phase 05]: bin/package.json carries only production fields (no devDependencies, scripts, or main)
+- [Phase 05]: postinstall.sh cron expression logic mirrors cron-helper.js with hours=1 special case
 
 ### Pending Todos
 
@@ -102,6 +106,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T11:16:51.669Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-plugin-packaging-and-release/05-CONTEXT.md
+Last session: 2026-03-16T11:40:23Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: .planning/phases/05-plugin-packaging-and-release/05-01-SUMMARY.md
