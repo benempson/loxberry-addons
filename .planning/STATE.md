@@ -57,6 +57,7 @@ Progress: [████████░░] 89%
 | Phase 02 P01 | 4min | 2 tasks | 2 files |
 | Phase 02 P02 | 3min | 1 tasks | 2 files |
 | Phase 03 P01 | 3min | 2 tasks | 4 files |
+| Phase 03 P02 | 3min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,8 @@ Recent decisions affecting current work:
 - [Phase 03]: Bridge monitor treats missing/malformed payloads as offline (safe default)
 - [Phase 03]: First run defaults wasOnline=true so initial offline is detected as transition
 - [Phase 03]: HTML email uses inline styles (email clients strip external CSS)
+- [Phase 03]: Strict shell sanitization: replace quotes, strip backticks/dollar/backslash for Loxberry notify
+- [Phase 03]: 10s Nodemailer timeouts (connection/greeting/socket) to stay within 30s hard timeout
 - [Phase 02]: 5% battery hysteresis band; alert at <=25%, recover only above 30%
 - [Phase 02]: Strict greater-than for offline threshold boundary (exactly 24h = not offline)
 - [Phase 02]: normalizeAlerts handles legacy Phase 1 state missing recovered_at fields

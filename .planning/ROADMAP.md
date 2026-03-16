@@ -49,11 +49,11 @@ Plans:
   2. Plugin tracks battery level for battery-powered devices only (identified via power_source) and flags devices below a configurable threshold (default 25%)
   3. Plugin alerts only on transition from "ok" to "alert" state and clears alert state when a device recovers -- no duplicate alerts on consecutive runs
   4. Plugin skips all monitoring for devices on the exclusion list
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 02-01-PLAN.md — Evaluator module with TDD (threshold evaluation and state machine transitions)
-- [ ] 02-02-PLAN.md — Wire evaluator into watchdog main lifecycle with console summary
+- [x] 02-02-PLAN.md — Wire evaluator into watchdog main lifecycle with console summary
 
 ### Phase 3: Alert Delivery
 **Goal**: Plugin delivers alert notifications through Loxberry's built-in system and SMTP email, with clear messages identifying the problem device and status
@@ -67,8 +67,8 @@ Plans:
 **Plans:** 2/3 plans executed
 
 Plans:
-- [ ] 03-01-PLAN.md — Bridge monitor and email template modules (pure logic, TDD)
-- [ ] 03-02-PLAN.md — Loxberry notify and SMTP email channel modules
+- [x] 03-01-PLAN.md — Bridge monitor and email template modules (pure logic, TDD)
+- [x] 03-02-PLAN.md — Loxberry notify and SMTP email channel modules
 - [ ] 03-03-PLAN.md — Notification dispatcher and watchdog main wiring
 
 **Research flag**: VERIFY Loxberry notification API on live system -- exact path and CLI arguments for the notification helper. Test notification delivery in isolation before wiring to the alert pipeline.
@@ -112,7 +112,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. MQTT Foundation and State Persistence | 4/4 | Complete   | 2026-03-14 |
-| 2. Threshold Evaluation and Alert Logic | 1/2 | In Progress | - |
+| 2. Threshold Evaluation and Alert Logic | 2/2 | Complete | 2026-03-14 |
 | 3. Alert Delivery | 2/3 | In Progress|  |
 | 4. Web Config UI | 0/? | Not started | - |
 | 5. Plugin Packaging and Release | 0/? | Not started | - |

@@ -32,8 +32,8 @@
 
 ### Notification Delivery (NOTF)
 
-- [ ] **NOTF-01**: Plugin sends alerts via Loxberry's built-in notification system
-- [ ] **NOTF-02**: Plugin sends alerts via SMTP email using configurable SMTP settings
+- [x] **NOTF-01**: Plugin sends alerts via Loxberry's built-in notification system
+- [x] **NOTF-02**: Plugin sends alerts via SMTP email using configurable SMTP settings
 - [x] **NOTF-03**: Alert messages include device friendly name, status (offline/low battery), and relevant detail (last seen time / battery %)
 
 ### Web Config UI (CONF)
@@ -100,8 +100,8 @@
 | ALRT-04 | Phase 2 | Complete |
 | ALRT-05 | Phase 2 | Complete |
 | ALRT-06 | Phase 3 | Complete |
-| NOTF-01 | Phase 3 | Pending |
-| NOTF-02 | Phase 3 | Pending |
+| NOTF-01 | Phase 3 | Complete |
+| NOTF-02 | Phase 3 | Complete |
 | NOTF-03 | Phase 3 | Complete |
 | CONF-01 | Phase 4 | Pending |
 | CONF-02 | Phase 4 | Pending |
