@@ -1,6 +1,6 @@
 {
   "name": "zigbee-watchdog",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "main": "bin/watchdog.js",
   "scripts": {
@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "ini": "^5.0.0",
-
     "nodemailer": "^8.0.2",
     "proper-lockfile": "^4.1.2",
     "write-file-atomic": "^7.0.0"
