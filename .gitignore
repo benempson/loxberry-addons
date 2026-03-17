@@ -1,3 +1,6 @@
+zigbee-watchdog-*.zip
+
 node_modules/
 coverage/
 *.log
+.gitkeep

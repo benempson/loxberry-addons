@@ -17,7 +17,9 @@ A Loxberry plugin that monitors Zigbee devices via zigbee2mqtt and alerts when d
 ## Build
 git archive --format=zip --output=zigbee-watchdog-0.1.0.zip HEAD plugin.cfg preinstall.sh preupgrade.sh postinstall.sh uninstall/ bin/ webfrontend/ templates/ README.md
 
-node -e "const v=require('./package.json').version; require('child_process').execSync('git archive --format=zip --output=zigbee-watchdog-'+v+'.zip HEAD plugin.cfg preinstall.sh preupgrade.sh postinstall.sh uninstall/ bin/ webfrontend/ templates/ README.md', {stdio:'inherit'}); console.log('Built: zigbee-watchdog-'+v+'.zip')"
+node release.js patch — 0.6.0 → 0.6.1 (default)
+node release.js minor — 0.6.0 → 0.7.0
+node release.js major — 0.6.0 → 1.0.0
 
 ## Installation
 1. Download the latest release ZIP
