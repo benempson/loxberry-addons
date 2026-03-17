@@ -725,26 +725,32 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
                     <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 1, 'str')"><?php echo htmlspecialchars($L['STATUS.COL_DESCRIPTION']); ?></th>
                     <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 2, 'num')"><?php echo htmlspecialchars($L['STATUS.COL_LAST_SEEN']); ?></th>
                     <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 3, 'num')"><?php echo htmlspecialchars($L['STATUS.COL_BATTERY']); ?></th>
-                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 4, 'num')"><?php echo htmlspecialchars($L['STATUS.COL_ALERT']); ?></th>
+                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 4, 'num')"><?php echo htmlspecialchars($L['STATUS.COL_LINK_QUALITY']); ?></th>
+                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 5, 'num')"><?php echo htmlspecialchars($L['STATUS.COL_ALERT']); ?></th>
                     <th style="padding:8px;text-align:left;"><?php echo htmlspecialchars($L['STATUS.COL_EXCLUDE']); ?></th>
                 </tr>
             </thead>
             <tbody>
 <?php foreach ($table_rows as $row): ?>
                 <tr style="border-bottom:1px solid #ddd;" data-ieee="<?php echo htmlspecialchars($row['ieee']); ?>" data-excluded="<?php echo $row['is_excluded'] ? '1' : '0'; ?>">
+<?php
+    $device_z2m_state = isset($z2m_state_data) && is_array($z2m_state_data) && isset($z2m_state_data[$row['ieee']]) ? $z2m_state_data[$row['ieee']] : null;
+    $state_json_attr = $device_z2m_state ? htmlspecialchars(json_encode($device_z2m_state), ENT_QUOTES) : '';
+    $lqi = ($device_z2m_state && isset($device_z2m_state['linkquality'])) ? intval($device_z2m_state['linkquality']) : null;
+?>
                     <td style="padding:8px;"><?php echo htmlspecialchars($row['name']); ?></td>
                     <td style="padding:8px;"><?php echo htmlspecialchars($row['description']); ?></td>
                     <td style="padding:8px;" data-sort-value="<?php echo $row['last_seen_ts']; ?>"><?php echo htmlspecialchars($row['last_seen_age']); ?></td>
                     <td style="padding:8px;" data-sort-value="<?php echo $row['battery_sort']; ?>"><?php echo $row['battery'] !== null ? $row['battery'] . '%' : 'N/A'; ?></td>
+                    <td style="padding:8px;" data-sort-value="<?php echo $lqi !== null ? $lqi : -1; ?>">
+                        <?php echo $lqi !== null ? $lqi : 'N/A'; ?>
+                    </td>
                     <td style="padding:8px;" data-sort-value="<?php echo $row['sort_priority']; ?>">
 <?php
     $badge_bg = '#4CAF50'; // OK = green
     if ($row['alert_status'] === 'Offline') $badge_bg = '#f44336'; // red
     elseif ($row['alert_status'] === 'Low Battery') $badge_bg = '#FF9800'; // orange
     elseif ($row['alert_status'] === 'Excluded') $badge_bg = '#9E9E9E'; // grey
-
-    $device_z2m_state = isset($z2m_state_data) && is_array($z2m_state_data) && isset($z2m_state_data[$row['ieee']]) ? $z2m_state_data[$row['ieee']] : null;
-    $state_json_attr = $device_z2m_state ? htmlspecialchars(json_encode($device_z2m_state), ENT_QUOTES) : '';
 ?>
                         <span style="background:<?php echo $badge_bg; ?>;color:#fff;padding:2px 8px;border-radius:3px;font-size:0.85em;<?php echo $state_json_attr !== '' ? 'cursor:pointer;' : ''; ?>"<?php echo $state_json_attr !== '' ? ' data-z2m-state="' . $state_json_attr . '"' : ''; ?>>
                             <?php echo htmlspecialchars($row['alert_status']); ?>
