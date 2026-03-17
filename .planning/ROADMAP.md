@@ -120,6 +120,16 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 4. Web Config UI | 0/3 | Planning complete | - |
 | 5. Plugin Packaging and Release | 0/2 | Planning complete | - |
 
+### Phase 05.3: Display device state in tooltip on device status page (INSERTED)
+
+**Goal:** Add Z2M device state tooltip to alert badges, fix search placeholder alignment, and fix clear-search button on the device status page.
+**Requirements**: N/A-INSERTED
+**Depends on:** Phase 5
+**Plans:** 1 plan
+
+Plans:
+- [ ] 05.3-01-PLAN.md — Z2M state tooltip popup, search placeholder fix, clear-search bug fix
+
 ### Phase 05.2: UI improvements (INSERTED)
 
 **Goal:** Consolidate exclusion management into the Device Status tab, add description column, search filter, and inline exclude toggles. Remove standalone Exclusions tab.
