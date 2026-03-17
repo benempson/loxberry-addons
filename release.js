@@ -4,6 +4,8 @@
 // Default: patch
 
 const fs = require('fs');
+const path = require('path');
+const https = require('https');
 const { execSync } = require('child_process');
 
 const bumpType = process.argv[2] || 'patch';
@@ -62,12 +64,105 @@ console.log(`Built: ${zipName}`);
 console.log('Pushing to origin...');
 execSync('git push origin main', { stdio: 'inherit' });
 
-// Create GitHub Release with zip attached
-console.log(`Creating GitHub Release ${newVersion}...`);
-execSync(`gh release create ${newVersion} ${zipName} --title "v${newVersion}" --generate-notes`, { stdio: 'inherit' });
+// Create GitHub Release and upload zip via GitHub API
+async function createRelease() {
+  const token = (process.env.GITHUB_TOKEN || '').trim()
+    || (() => { try { return execSync('git credential fill', { input: 'protocol=https\nhost=github.com\n', encoding: 'utf8' }).match(/password=(.*)/)?.[1]?.trim(); } catch { return ''; } })();
 
-// Clean up local zip
-fs.unlinkSync(zipName);
+  if (!token) {
+    console.error('\nError: No GitHub token found.');
+    console.error('Set GITHUB_TOKEN environment variable or install gh CLI.');
+    console.error(`\nTo finish manually:\n  gh release create ${newVersion} ${zipName} --title "v${newVersion}" --generate-notes`);
+    process.exit(1);
+  }
 
-console.log(`\nDone! v${newVersion} released.`);
-console.log('GitHub Actions will also attach the zip and update release.cfg on main.');
+  const owner = 'benempson';
+  const repo = 'loxberry-addons';
+
+  function ghApi(method, apiPath, body) {
+    return new Promise((resolve, reject) => {
+      const options = {
+        hostname: 'api.github.com',
+        path: apiPath,
+        method,
+        headers: {
+          'Authorization': `token ${token}`,
+          'User-Agent': 'zigbee-watchdog-release',
+          'Accept': 'application/vnd.github+json',
+        },
+      };
+      if (body) {
+        const data = JSON.stringify(body);
+        options.headers['Content-Type'] = 'application/json';
+        options.headers['Content-Length'] = Buffer.byteLength(data);
+      }
+      const req = https.request(options, (res) => {
+        let raw = '';
+        res.on('data', (chunk) => raw += chunk);
+        res.on('end', () => {
+          if (res.statusCode >= 400) {
+            reject(new Error(`GitHub API ${res.statusCode}: ${raw}`));
+          } else {
+            resolve(JSON.parse(raw || '{}'));
+          }
+        });
+      });
+      req.on('error', reject);
+      if (body) req.write(JSON.stringify(body));
+      req.end();
+    });
+  }
+
+  function uploadAsset(uploadUrl, filePath, fileName) {
+    return new Promise((resolve, reject) => {
+      const fileData = fs.readFileSync(filePath);
+      const url = new URL(uploadUrl.replace('{?name,label}', `?name=${fileName}`));
+      const options = {
+        hostname: url.hostname,
+        path: url.pathname + url.search,
+        method: 'POST',
+        headers: {
+          'Authorization': `token ${token}`,
+          'User-Agent': 'zigbee-watchdog-release',
+          'Content-Type': 'application/zip',
+          'Content-Length': fileData.length,
+        },
+      };
+      const req = https.request(options, (res) => {
+        let raw = '';
+        res.on('data', (chunk) => raw += chunk);
+        res.on('end', () => {
+          if (res.statusCode >= 400) {
+            reject(new Error(`Upload failed ${res.statusCode}: ${raw}`));
+          } else {
+            resolve(JSON.parse(raw));
+          }
+        });
+      });
+      req.on('error', reject);
+      req.write(fileData);
+      req.end();
+    });
+  }
+
+  console.log(`Creating GitHub Release ${newVersion}...`);
+  const release = await ghApi('POST', `/repos/${owner}/${repo}/releases`, {
+    tag_name: newVersion,
+    name: `v${newVersion}`,
+    generate_release_notes: true,
+  });
+
+  console.log(`Uploading ${zipName}...`);
+  await uploadAsset(release.upload_url, zipName, zipName);
+
+  fs.unlinkSync(zipName);
+  console.log(`\nDone! v${newVersion} released.`);
+  console.log(`https://github.com/${owner}/${repo}/releases/tag/${newVersion}`);
+  console.log('GitHub Actions will update release.cfg on main.');
+}
+
+createRelease().catch((err) => {
+  console.error('\nRelease creation failed:', err.message);
+  console.error(`\nVersion bump and push succeeded. To finish manually:\n  gh release create ${newVersion} ${zipName} --title "v${newVersion}" --generate-notes`);
+  process.exit(1);
+});
