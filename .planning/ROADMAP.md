@@ -122,13 +122,13 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 ### Phase 05.2: UI improvements (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
-**Depends on:** Phase 5
-**Plans:** 0 plans
+**Goal:** Consolidate exclusion management into the Device Status tab, add description column, search filter, and inline exclude toggles. Remove standalone Exclusions tab.
+**Depends on:** Phase 5.1
+**Plans:** 2 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 05.2 to break down)
+- [ ] 05.2-01-PLAN.md — Pass description through device registry and state pipeline, update language strings
+- [ ] 05.2-02-PLAN.md — Restructure PHP UI: remove Exclusions tab, add inline excludes, search, description column
 
 ### Phase 05.1: Replace MQTT dependency with direct zigbee2mqtt file reading (INSERTED)
 
