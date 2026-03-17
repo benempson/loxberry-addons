@@ -191,7 +191,7 @@ function update_cron($interval_minutes) {
 }
 
 // ------------------------------------------------------------------
-// Load state.json for Exclusions and Status tabs
+// Load state.json for Device Status tab
 // ------------------------------------------------------------------
 $state_file = LBPDATADIR . '/state.json';
 $state_missing = true;
@@ -243,13 +243,37 @@ function collect_form_config($defaults, $cfgfile) {
 }
 
 // ------------------------------------------------------------------
-// POST handler: Save Settings / Verify Z2M / Test Email
+// POST handler: Save Settings / Verify Z2M / Test Email / Exclusion
 // ------------------------------------------------------------------
 $error = '';
 $msg = isset($_GET['msg']) ? $_GET['msg'] : '';
 $test_result = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+
+    // AJAX single-device exclusion toggle (returns JSON, exits early)
+    if ($_POST['action'] === 'save_exclusion') {
+        $ieee = isset($_POST['ieee']) ? trim($_POST['ieee']) : '';
+        $checked = isset($_POST['checked']) ? $_POST['checked'] === '1' : false;
+        if (!preg_match('/^0x[0-9a-fA-F]+$/', $ieee)) {
+            http_response_code(400);
+            echo json_encode(array('error' => 'Invalid IEEE address'));
+            exit;
+        }
+        $current = read_config($cfgfile, $defaults);
+        $excl_raw = trim($current['EXCLUSIONS']['devices']);
+        $excl_list = $excl_raw !== '' ? array_map('trim', explode(',', $excl_raw)) : array();
+        if ($checked && !in_array($ieee, $excl_list)) {
+            $excl_list[] = $ieee;
+        } elseif (!$checked) {
+            $excl_list = array_values(array_filter($excl_list, function($v) use ($ieee) { return $v !== $ieee; }));
+        }
+        $current['EXCLUSIONS']['devices'] = implode(',', $excl_list);
+        $ok = write_config($cfgfile, $current);
+        header('Content-Type: application/json');
+        echo json_encode(array('success' => $ok));
+        exit;
+    }
 
     if ($_POST['action'] === 'verify_z2m') {
         set_time_limit(45);
@@ -309,22 +333,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             } else {
                 $error = $L['MESSAGES.SAVE_ERROR'] . 'Could not write config file.';
             }
-        }
-    }
-
-    if ($_POST['action'] === 'save_exclusions') {
-        $excluded = isset($_POST['excluded']) && is_array($_POST['excluded']) ? $_POST['excluded'] : array();
-        // Sanitize: keep only valid-looking IEEE addresses
-        $excluded = array_filter($excluded, function($v) {
-            return preg_match('/^0x[0-9a-fA-F]+$/', $v);
-        });
-        $current = read_config($cfgfile, $defaults);
-        $current['EXCLUSIONS']['devices'] = implode(',', $excluded);
-        if (write_config($cfgfile, $current)) {
-            header('Location: index.php?tab=exclusions&msg=saved');
-            exit;
-        } else {
-            $error = 'Could not write config file.';
         }
     }
 
@@ -393,16 +401,7 @@ function formatAge($seconds) {
 }
 
 // ------------------------------------------------------------------
-// Build sorted device list for Exclusions tab
-// ------------------------------------------------------------------
-$sorted_devices = array();
-foreach ($devices as $ieee => $dev) {
-    $sorted_devices[$ieee] = isset($dev['friendly_name']) ? $dev['friendly_name'] : $ieee;
-}
-asort($sorted_devices); // alphabetical by friendly name
-
-// ------------------------------------------------------------------
-// Build table rows for Status tab
+// Build table rows for Device Status tab
 // ------------------------------------------------------------------
 $table_rows = array();
 $now = time();
@@ -432,7 +431,8 @@ foreach ($devices as $ieee => $dev) {
         $sort_priority = 1;
     }
     // Excluded overrides OK but not alerts
-    if ($sort_priority > 1 && in_array($ieee, $excluded_iees)) {
+    $is_excluded = in_array($ieee, $excluded_iees);
+    if ($sort_priority > 1 && $is_excluded) {
         $alert_status = 'Excluded';
         $sort_priority = 2;
     }
@@ -440,12 +440,14 @@ foreach ($devices as $ieee => $dev) {
     $table_rows[] = array(
         'ieee' => $ieee,
         'name' => $name,
+        'description' => isset($dev['description']) ? $dev['description'] : '',
         'last_seen_age' => $last_seen_age,
         'last_seen_ts' => $last_seen_ts,
         'battery' => $battery,
         'battery_sort' => $battery_sort,
         'alert_status' => $alert_status,
         'sort_priority' => $sort_priority,
+        'is_excluded' => $is_excluded,
     );
 }
 
@@ -458,7 +460,7 @@ usort($table_rows, function($a, $b) {
 });
 
 // ------------------------------------------------------------------
-// Navbar (Loxberry SDK tabs)
+// Navbar (Loxberry SDK tabs) -- two tabs only
 // ------------------------------------------------------------------
 $tab = isset($_GET['tab']) ? $_GET['tab'] : 'settings';
 
@@ -466,13 +468,9 @@ $navbar[1]['Name'] = $L['NAV.SETTINGS'];
 $navbar[1]['URL']  = 'index.php';
 if ($tab === 'settings') $navbar[1]['active'] = true;
 
-$navbar[2]['Name'] = $L['NAV.EXCLUSIONS'];
-$navbar[2]['URL']  = 'index.php?tab=exclusions';
-if ($tab === 'exclusions') $navbar[2]['active'] = true;
-
-$navbar[3]['Name'] = $L['NAV.STATUS'];
-$navbar[3]['URL']  = 'index.php?tab=status';
-if ($tab === 'status') $navbar[3]['active'] = true;
+$navbar[2]['Name'] = $L['NAV.STATUS'];
+$navbar[2]['URL']  = 'index.php?tab=status';
+if ($tab === 'status') $navbar[2]['active'] = true;
 
 // ------------------------------------------------------------------
 // Header
@@ -499,7 +497,6 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
     <div data-role="navbar">
         <ul>
             <li><a href="#tab-settings" <?php echo $tab === 'settings' ? 'class="ui-btn-active"' : ''; ?>><?php echo htmlspecialchars($L['NAV.SETTINGS']); ?></a></li>
-            <li><a href="#tab-exclusions" <?php echo $tab === 'exclusions' ? 'class="ui-btn-active"' : ''; ?>><?php echo htmlspecialchars($L['NAV.EXCLUSIONS']); ?></a></li>
             <li><a href="#tab-status" <?php echo $tab === 'status' ? 'class="ui-btn-active"' : ''; ?>><?php echo htmlspecialchars($L['NAV.STATUS']); ?></a></li>
         </ul>
     </div>
@@ -672,36 +669,6 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
     </div>
 
     <!-- ============================================================ -->
-    <!-- EXCLUSIONS TAB                                                -->
-    <!-- ============================================================ -->
-    <div id="tab-exclusions">
-<?php if ($state_missing): ?>
-        <div style="background:#2196F3;color:#fff;padding:10px 15px;margin:10px 0;border-radius:4px;">
-            No device data yet. Run the watchdog first or click Refresh Data on the Device Status tab.
-        </div>
-<?php else: ?>
-        <input type="search" id="device-search" placeholder="Filter devices..." style="margin:10px 0;padding:8px;width:100%;box-sizing:border-box;">
-
-        <form method="post" action="index.php" data-ajax="false">
-            <input type="hidden" name="action" value="save_exclusions">
-
-<?php foreach ($sorted_devices as $ieee => $friendly_name): ?>
-            <div class="device-item" data-name="<?php echo htmlspecialchars($friendly_name); ?>" style="padding:4px 0;">
-                <input type="checkbox" name="excluded[]" value="<?php echo htmlspecialchars($ieee); ?>"
-                       id="dev-<?php echo htmlspecialchars($ieee); ?>"
-                       <?php echo in_array($ieee, $excluded_iees) ? 'checked' : ''; ?>>
-                <label for="dev-<?php echo htmlspecialchars($ieee); ?>"><?php echo htmlspecialchars($friendly_name); ?></label>
-            </div>
-<?php endforeach; ?>
-
-            <button type="submit" class="ui-btn ui-btn-b ui-corner-all" style="margin-top:15px;">
-                <?php echo htmlspecialchars($L['BUTTONS.SAVE']); ?>
-            </button>
-        </form>
-<?php endif; ?>
-    </div>
-
-    <!-- ============================================================ -->
     <!-- DEVICE STATUS TAB                                             -->
     <!-- ============================================================ -->
     <div id="tab-status">
@@ -736,6 +703,16 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
             </form>
         </div>
 
+        <!-- Show Excluded toggle and Search filter -->
+        <div style="display:flex;align-items:center;gap:15px;margin:10px 0;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:5px;font-size:0.9em;">
+                <input type="checkbox" id="show-excluded">
+                <?php echo htmlspecialchars($L['STATUS.SHOW_EXCLUDED']); ?>
+            </label>
+            <input type="search" id="device-search" placeholder="Filter devices..."
+                   style="flex:1;min-width:200px;padding:8px;box-sizing:border-box;">
+        </div>
+
 <?php if ($state_missing): ?>
         <div style="background:#2196F3;color:#fff;padding:10px 15px;margin:10px 0;border-radius:4px;">
             <?php echo htmlspecialchars($L['MESSAGES.NO_DATA']); ?>
@@ -745,15 +722,18 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
             <thead>
                 <tr style="background:#f5f5f5;">
                     <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 0, 'str')"><?php echo htmlspecialchars($L['STATUS.COL_DEVICE']); ?></th>
-                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 1, 'num')"><?php echo htmlspecialchars($L['STATUS.COL_LAST_SEEN']); ?></th>
-                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 2, 'num')"><?php echo htmlspecialchars($L['STATUS.COL_BATTERY']); ?></th>
-                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 3, 'num')"><?php echo htmlspecialchars($L['STATUS.COL_ALERT']); ?></th>
+                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 1, 'str')"><?php echo htmlspecialchars($L['STATUS.COL_DESCRIPTION']); ?></th>
+                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 2, 'num')"><?php echo htmlspecialchars($L['STATUS.COL_LAST_SEEN']); ?></th>
+                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 3, 'num')"><?php echo htmlspecialchars($L['STATUS.COL_BATTERY']); ?></th>
+                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 4, 'num')"><?php echo htmlspecialchars($L['STATUS.COL_ALERT']); ?></th>
+                    <th style="padding:8px;text-align:left;"><?php echo htmlspecialchars($L['STATUS.COL_EXCLUDE']); ?></th>
                 </tr>
             </thead>
             <tbody>
 <?php foreach ($table_rows as $row): ?>
-                <tr style="border-bottom:1px solid #ddd;">
+                <tr style="border-bottom:1px solid #ddd;" data-ieee="<?php echo htmlspecialchars($row['ieee']); ?>" data-excluded="<?php echo $row['is_excluded'] ? '1' : '0'; ?>">
                     <td style="padding:8px;"><?php echo htmlspecialchars($row['name']); ?></td>
+                    <td style="padding:8px;"><?php echo htmlspecialchars($row['description']); ?></td>
                     <td style="padding:8px;" data-sort-value="<?php echo $row['last_seen_ts']; ?>"><?php echo htmlspecialchars($row['last_seen_age']); ?></td>
                     <td style="padding:8px;" data-sort-value="<?php echo $row['battery_sort']; ?>"><?php echo $row['battery'] !== null ? $row['battery'] . '%' : 'N/A'; ?></td>
                     <td style="padding:8px;" data-sort-value="<?php echo $row['sort_priority']; ?>">
@@ -767,6 +747,9 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
                             <?php echo htmlspecialchars($row['alert_status']); ?>
                         </span>
                     </td>
+                    <td style="padding:8px;">
+                        <input type="checkbox" class="exclude-cb" data-ieee="<?php echo htmlspecialchars($row['ieee']); ?>" <?php echo $row['is_excluded'] ? 'checked' : ''; ?>>
+                    </td>
                 </tr>
 <?php endforeach; ?>
             </tbody>
@@ -776,7 +759,7 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
 
 </div>
 
-<!-- Inline JS: SMTP toggle and password reveal -->
+<!-- Inline JS: SMTP toggle, password reveal, device filters, exclusion AJAX -->
 <script>
 // Toggle SMTP fields visibility based on email_enabled slider
 document.addEventListener('DOMContentLoaded', function() {
@@ -798,6 +781,61 @@ document.addEventListener('DOMContentLoaded', function() {
             jQuery(emailSelect).on('slidestop', updateSmtpVisibility);
         }
     }
+
+    // Apply filters on page load to hide excluded devices by default
+    applyFilters();
+});
+
+// Shared filter function for search + show-excluded
+function applyFilters() {
+    var query = (document.getElementById('device-search').value || '').toLowerCase();
+    var showExcluded = document.getElementById('show-excluded').checked;
+    var rows = document.querySelectorAll('#device-table tbody tr');
+    for (var i = 0; i < rows.length; i++) {
+        var name = (rows[i].querySelector('td') || {}).textContent || '';
+        var excluded = rows[i].getAttribute('data-excluded') === '1';
+        var matchesSearch = name.toLowerCase().indexOf(query) !== -1;
+        var matchesExcluded = showExcluded || !excluded;
+        rows[i].style.display = (matchesSearch && matchesExcluded) ? '' : 'none';
+    }
+}
+
+// Wire search input to applyFilters
+var deviceSearch = document.getElementById('device-search');
+if (deviceSearch) {
+    deviceSearch.addEventListener('input', function() {
+        applyFilters();
+    });
+}
+
+// Wire show-excluded checkbox to applyFilters
+var showExcludedCb = document.getElementById('show-excluded');
+if (showExcludedCb) {
+    showExcludedCb.addEventListener('change', function() {
+        applyFilters();
+    });
+}
+
+// AJAX handler for exclude checkboxes
+document.addEventListener('change', function(e) {
+    if (!e.target.classList.contains('exclude-cb')) return;
+    var cb = e.target;
+    var ieee = cb.getAttribute('data-ieee');
+    var checked = cb.checked ? '1' : '0';
+    var row = cb.closest('tr');
+    row.setAttribute('data-excluded', cb.checked ? '1' : '0');
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'index.php', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.onload = function() {
+        if (xhr.status !== 200) {
+            cb.checked = !cb.checked; // revert on failure
+            row.setAttribute('data-excluded', cb.checked ? '1' : '0');
+        }
+        applyFilters(); // re-apply show/hide
+    };
+    xhr.send('action=save_exclusion&ieee=' + encodeURIComponent(ieee) + '&checked=' + checked);
+    applyFilters(); // immediately apply filter
 });
 
 // Sortable table for Device Status tab
@@ -833,19 +871,6 @@ function sortTable(table, col, type) {
     }
 }
 
-// Device search filter for Exclusions tab
-var deviceSearch = document.getElementById('device-search');
-if (deviceSearch) {
-    deviceSearch.addEventListener('input', function() {
-        var query = this.value.toLowerCase();
-        var items = document.querySelectorAll('.device-item');
-        for (var i = 0; i < items.length; i++) {
-            var name = (items[i].getAttribute('data-name') || '').toLowerCase();
-            items[i].style.display = name.indexOf(query) !== -1 ? '' : 'none';
-        }
-    });
-}
-
 // Password eye-toggle
 function togglePassword(fieldId) {
     var field = document.getElementById(fieldId);
@@ -864,8 +889,7 @@ function togglePassword(fieldId) {
 // Tab activation from URL parameter
 <?php
 $tab_index = 0;
-if ($tab === 'exclusions') $tab_index = 1;
-if ($tab === 'status') $tab_index = 2;
+if ($tab === 'status') $tab_index = 1;
 if ($tab_index > 0):
 ?>
 if (typeof jQuery !== 'undefined') {
