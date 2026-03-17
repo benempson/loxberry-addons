@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed quick-1-PLAN.md
-last_updated: "2026-03-17T11:26:25.233Z"
-last_activity: 2026-03-17 -- Completed 05.3-01 (tooltip, search fixes)
+stopped_at: Completed 05.4-01-PLAN.md
+last_updated: "2026-03-17T12:29:36.300Z"
+last_activity: "2026-03-17 - Completed 05.4-01 (LQI column and Blinds tab)"
 progress:
-  total_phases: 8
+  total_phases: 9
   completed_phases: 7
-  total_plans: 20
-  completed_plans: 19
+  total_plans: 22
+  completed_plans: 20
   percent: 95
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Proactively alert when Zigbee devices are offline or low on battery so they can be fixed before the user notices missing functionality around the house.
-**Current focus:** Phase 5.3: Display device state in tooltip -- complete
+**Current focus:** Phase 5.4: Live monitoring of device state
 
 ## Current Position
 
-Phase: 5.3 of 8 (Display device state in tooltip on device status page)
+Phase: 5.4 of 9 (Live monitoring of device state)
 Plan: 1 of 1 in current phase -- Complete
 Status: In Progress
-Last activity: 2026-03-17 - Completed quick task 1: Fix settings wiped on in-place install
+Last activity: 2026-03-17 - Completed 05.4-01 (LQI column and Blinds tab)
 
-Progress: [██████████] 95%
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [██████████] 95%
 | Phase 05.2 P01 | 1min | 2 tasks | 3 files |
 | Phase 05.3 P01 | 1min | 2 tasks | 1 files |
 | Phase quick P1 | 1min | 2 tasks | 3 files |
+| Phase 05.4 P01 | 2min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -112,6 +113,8 @@ Recent decisions affecting current work:
 - [Phase 05.1]: Auto-detect search paths in PHP mirror z2m-reader.js SEARCH_PATHS for consistency
 - [Phase 05.2]: Prune stale devices from state.json during mergeDeviceState to keep state clean
 - [Phase 05.3]: Single shared jQuery Mobile popup with JS content swap for Z2M state tooltip
+- [Phase 05.4]: Moved z2m state computation before first td so LQI and alert status share same lookup
+- [Phase 05.4]: Blinds filter uses strpos on friendly_name prefix MS-108ZR
 
 ### Pending Todos
 
@@ -122,6 +125,7 @@ None yet.
 - Phase 05.1 inserted after Phase 5: Replace MQTT dependency with direct zigbee2mqtt file reading (URGENT) — discovered during UAT that MQTT retained messages are unreliable for device state collection; reading z2m's state.json directly is simpler and more robust, also eliminates MQTT broker configuration from plugin settings
 - Phase 05.2 inserted after Phase 5: UI improvements — discovered during UAT testing
 - Phase 05.3 inserted after Phase 5: Display device state in tooltip on device status page (URGENT)
+- Phase 05.4 inserted after Phase 5: Live monitoring of device state (URGENT)
 
 ### Blockers/Concerns
 
@@ -135,6 +139,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T11:26:25.169Z
-Stopped at: Completed quick-1-PLAN.md
+Last session: 2026-03-17T12:29:36.297Z
+Stopped at: Completed 05.4-01-PLAN.md
 Resume file: None
