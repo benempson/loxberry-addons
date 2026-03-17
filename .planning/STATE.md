@@ -115,6 +115,7 @@ None yet.
 ### Roadmap Evolution
 
 - Phase 05.1 inserted after Phase 5: Replace MQTT dependency with direct zigbee2mqtt file reading (URGENT) — discovered during UAT that MQTT retained messages are unreliable for device state collection; reading z2m's state.json directly is simpler and more robust, also eliminates MQTT broker configuration from plugin settings
+- Phase 05.2 inserted after Phase 5: UI improvements — discovered during UAT testing
 
 ### Blockers/Concerns
 

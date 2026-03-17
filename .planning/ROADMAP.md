@@ -120,6 +120,16 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 4. Web Config UI | 0/3 | Planning complete | - |
 | 5. Plugin Packaging and Release | 0/2 | Planning complete | - |
 
+### Phase 05.2: UI improvements (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 5
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 05.2 to break down)
+
 ### Phase 05.1: Replace MQTT dependency with direct zigbee2mqtt file reading (INSERTED)
 
 **Goal:** Replace MQTT broker dependency with direct reading of zigbee2mqtt's local data files (state.json, database.db) for device state, registry, and bridge monitoring. Remove MQTT config from UI, add z2m data path config with auto-detection.
