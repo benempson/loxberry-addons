@@ -120,6 +120,16 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 4. Web Config UI | 0/3 | Planning complete | - |
 | 5. Plugin Packaging and Release | 0/2 | Planning complete | - |
 
+### Phase 05.5: Blinds tab updates (INSERTED)
+
+**Goal:** Add Description column, sortable column headers, and 20px top spacing to the Blinds tab, matching Device Status tab patterns.
+**Requirements**: N/A-INSERTED
+**Depends on:** Phase 5.4
+**Plans:** 1 plan
+
+Plans:
+- [ ] 05.5-01-PLAN.md — Description column, sortable headers, and spacing for Blinds tab
+
 ### Phase 05.4: Live monitoring of device state (INSERTED)
 
 **Goal:** Add live AJAX polling for device state updates, a Blinds tab for MS-108ZR cover devices, and a Link Quality column to the Device Status table.
