@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Completed 05.1-03-PLAN.md
-last_updated: "2026-03-16T17:24:39.665Z"
-last_activity: 2026-03-16 -- Completed 05.1-03 (web UI and config update)
+status: in-progress
+stopped_at: Completed 05.2-01-PLAN.md
+last_updated: "2026-03-17T10:03:08Z"
+last_activity: 2026-03-17 -- Completed 05.2-01 (data pipeline and language keys)
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 6
-  total_plans: 17
-  completed_plans: 17
-  percent: 100
+  total_plans: 19
+  completed_plans: 18
+  percent: 95
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Proactively alert when Zigbee devices are offline or low on battery so they can be fixed before the user notices missing functionality around the house.
-**Current focus:** Phase 5.1: Replace MQTT dependency with direct zigbee2mqtt file reading -- complete
+**Current focus:** Phase 5.2: UI improvements -- in progress
 
 ## Current Position
 
-Phase: 5.1 of 6 (Replace MQTT with z2m file reading)
-Plan: 3 of 3 in current phase -- Complete
-Status: Complete
-Last activity: 2026-03-16 -- Completed 05.1-03 (web UI and config update)
+Phase: 5.2 of 7 (UI improvements)
+Plan: 1 of 2 in current phase -- Complete
+Status: In Progress
+Last activity: 2026-03-17 -- Completed 05.2-01 (data pipeline and language keys)
 
-Progress: [██████████] 100%
+Progress: [█████████░] 95%
 
 ## Performance Metrics
 
@@ -67,6 +67,7 @@ Progress: [██████████] 100%
 | Phase 05.1 P01 | 4min | 1 tasks | 11 files |
 | Phase 05.1 P02 | 3min | 2 tasks | 6 files |
 | Phase 05.1 P03 | 4min | 1 tasks | 4 files |
+| Phase 05.2 P01 | 1min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,7 @@ Recent decisions affecting current work:
 - [Phase 05.1]: z2m path resolution: config priority then auto-detect, descriptive error if neither works
 - [Phase 05.1]: Z2M status line computed server-side at page load using file_get_contents + filemtime
 - [Phase 05.1]: Auto-detect search paths in PHP mirror z2m-reader.js SEARCH_PATHS for consistency
+- [Phase 05.2]: Prune stale devices from state.json during mergeDeviceState to keep state clean
 
 ### Pending Todos
 
@@ -123,6 +125,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T17:19:29.158Z
-Stopped at: Completed 05.1-03-PLAN.md
+Last session: 2026-03-17T10:03:08Z
+Stopped at: Completed 05.2-01-PLAN.md
 Resume file: None

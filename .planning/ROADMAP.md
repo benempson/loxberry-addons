@@ -127,7 +127,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 **Plans:** 2 plans
 
 Plans:
-- [ ] 05.2-01-PLAN.md — Pass description through device registry and state pipeline, update language strings
+- [x] 05.2-01-PLAN.md — Pass description through device registry and state pipeline, update language strings
 - [ ] 05.2-02-PLAN.md — Restructure PHP UI: remove Exclusions tab, add inline excludes, search, description column
 
 ### Phase 05.1: Replace MQTT dependency with direct zigbee2mqtt file reading (INSERTED)
