@@ -125,7 +125,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 **Goal:** Add Description column, sortable column headers, and 20px top spacing to the Blinds tab, matching Device Status tab patterns.
 **Requirements**: N/A-INSERTED
 **Depends on:** Phase 5.4
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 05.5-01-PLAN.md — Description column, sortable headers, and spacing for Blinds tab
