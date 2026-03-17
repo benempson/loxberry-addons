@@ -878,13 +878,14 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
     <!-- BLINDS TAB                                                    -->
     <!-- ============================================================ -->
     <div id="tab-blinds">
-        <table id="blinds-table" data-role="table" class="ui-responsive" style="width:100%;border-collapse:collapse;">
+        <table id="blinds-table" data-role="table" class="ui-responsive" style="width:100%;border-collapse:collapse;margin-top:20px;">
             <thead>
                 <tr style="background:#f5f5f5;">
-                    <th style="padding:8px;text-align:left;"><?php echo htmlspecialchars($L['STATUS.COL_DEVICE']); ?></th>
-                    <th style="padding:8px;text-align:left;"><?php echo htmlspecialchars($L['STATUS.COL_POSITION']); ?></th>
-                    <th style="padding:8px;text-align:left;"><?php echo htmlspecialchars($L['STATUS.COL_STATE']); ?></th>
-                    <th style="padding:8px;text-align:left;"><?php echo htmlspecialchars($L['STATUS.COL_MOTOR_REVERSAL']); ?></th>
+                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 0, 'str')"><?php echo htmlspecialchars($L['STATUS.COL_DEVICE']); ?></th>
+                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 1, 'str')"><?php echo htmlspecialchars($L['STATUS.COL_DESCRIPTION']); ?></th>
+                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 2, 'num')"><?php echo htmlspecialchars($L['STATUS.COL_POSITION']); ?></th>
+                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 3, 'str')"><?php echo htmlspecialchars($L['STATUS.COL_STATE']); ?></th>
+                    <th style="padding:8px;text-align:left;cursor:pointer;" onclick="sortTable(this.closest('table'), 4, 'str')"><?php echo htmlspecialchars($L['STATUS.COL_MOTOR_REVERSAL']); ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -898,6 +899,7 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
 ?>
                 <tr style="border-bottom:1px solid #ddd;">
                     <td style="padding:8px;"><?php echo htmlspecialchars($row['name']); ?></td>
+                    <td style="padding:8px;"><?php echo htmlspecialchars($row['description']); ?></td>
                     <td style="padding:8px;"><?php echo $position !== null ? htmlspecialchars($position) . '%' : 'N/A'; ?></td>
                     <td style="padding:8px;"><?php echo $state_val !== null ? htmlspecialchars($state_val) : 'N/A'; ?></td>
                     <td style="padding:8px;"><?php echo $motor_rev !== null ? htmlspecialchars($motor_rev) : 'N/A'; ?></td>
@@ -1124,6 +1126,7 @@ function updateBlindsTable(data) {
         var mr = z.motor_reversal !== undefined && z.motor_reversal !== null ? escapeAttr(String(z.motor_reversal)) : 'N/A';
         html += '<tr style="border-bottom:1px solid #ddd;">';
         html += '<td style="padding:8px;">' + escapeAttr(d.name) + '</td>';
+        html += '<td style="padding:8px;">' + escapeAttr(d.description) + '</td>';
         html += '<td style="padding:8px;">' + pos + '</td>';
         html += '<td style="padding:8px;">' + st + '</td>';
         html += '<td style="padding:8px;">' + mr + '</td>';
