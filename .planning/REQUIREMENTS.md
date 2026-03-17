@@ -120,9 +120,9 @@
 | PLUG-03 | Phase 5 | Complete |
 | PLUG-04 | Phase 5 | Complete |
 | PLUG-05 | Phase 1 | Complete |
-| UPDT-01 | Phase 6 | Planned |
-| UPDT-02 | Phase 6 | Planned |
-| UPDT-03 | Phase 6 | Planned |
+| UPDT-01 | Phase 6 | Complete |
+| UPDT-02 | Phase 6 | Complete |
+| UPDT-03 | Phase 6 | Complete |
 
 **Coverage:**
 - v1 requirements: 33 total
