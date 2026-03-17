@@ -472,6 +472,10 @@ $navbar[2]['Name'] = $L['NAV.STATUS'];
 $navbar[2]['URL']  = 'index.php?tab=status';
 if ($tab === 'status') $navbar[2]['active'] = true;
 
+$navbar[3]['Name'] = $L['NAV.BLINDS'];
+$navbar[3]['URL']  = 'index.php?tab=blinds';
+if ($tab === 'blinds') $navbar[3]['active'] = true;
+
 // ------------------------------------------------------------------
 // Header
 // ------------------------------------------------------------------
@@ -498,6 +502,7 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
         <ul>
             <li><a href="#tab-settings" <?php echo $tab === 'settings' ? 'class="ui-btn-active"' : ''; ?>><?php echo htmlspecialchars($L['NAV.SETTINGS']); ?></a></li>
             <li><a href="#tab-status" <?php echo $tab === 'status' ? 'class="ui-btn-active"' : ''; ?>><?php echo htmlspecialchars($L['NAV.STATUS']); ?></a></li>
+            <li><a href="#tab-blinds" <?php echo $tab === 'blinds' ? 'class="ui-btn-active"' : ''; ?>><?php echo htmlspecialchars($L['NAV.BLINDS']); ?></a></li>
         </ul>
     </div>
 
@@ -771,6 +776,39 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
         </div>
     </div>
 
+    <!-- ============================================================ -->
+    <!-- BLINDS TAB                                                    -->
+    <!-- ============================================================ -->
+    <div id="tab-blinds">
+        <table id="blinds-table" data-role="table" class="ui-responsive" style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr style="background:#f5f5f5;">
+                    <th style="padding:8px;text-align:left;"><?php echo htmlspecialchars($L['STATUS.COL_DEVICE']); ?></th>
+                    <th style="padding:8px;text-align:left;"><?php echo htmlspecialchars($L['STATUS.COL_POSITION']); ?></th>
+                    <th style="padding:8px;text-align:left;"><?php echo htmlspecialchars($L['STATUS.COL_STATE']); ?></th>
+                    <th style="padding:8px;text-align:left;"><?php echo htmlspecialchars($L['STATUS.COL_MOTOR_REVERSAL']); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+<?php foreach ($table_rows as $row):
+    // Only show devices with friendly_name starting with "MS-108ZR"
+    if (strpos($row['name'], 'MS-108ZR') !== 0) continue;
+    $blind_state = isset($z2m_state_data) && is_array($z2m_state_data) && isset($z2m_state_data[$row['ieee']]) ? $z2m_state_data[$row['ieee']] : null;
+    $position = ($blind_state && isset($blind_state['position'])) ? $blind_state['position'] : null;
+    $state_val = ($blind_state && isset($blind_state['state'])) ? $blind_state['state'] : null;
+    $motor_rev = ($blind_state && isset($blind_state['motor_reversal'])) ? $blind_state['motor_reversal'] : null;
+?>
+                <tr style="border-bottom:1px solid #ddd;">
+                    <td style="padding:8px;"><?php echo htmlspecialchars($row['name']); ?></td>
+                    <td style="padding:8px;"><?php echo $position !== null ? htmlspecialchars($position) . '%' : 'N/A'; ?></td>
+                    <td style="padding:8px;"><?php echo $state_val !== null ? htmlspecialchars($state_val) : 'N/A'; ?></td>
+                    <td style="padding:8px;"><?php echo $motor_rev !== null ? htmlspecialchars($motor_rev) : 'N/A'; ?></td>
+                </tr>
+<?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+
 </div>
 
 <!-- Search input padding fix for magnifying glass icon -->
@@ -974,6 +1012,7 @@ function togglePassword(fieldId) {
 <?php
 $tab_index = 0;
 if ($tab === 'status') $tab_index = 1;
+if ($tab === 'blinds') $tab_index = 2;
 if ($tab_index > 0):
 ?>
 if (typeof jQuery !== 'undefined') {
