@@ -1110,6 +1110,7 @@ function updateStatusTable(data) {
         }
     }
 
+    reapplySort(document.getElementById('device-table'));
     applyFilters();
 }
 
@@ -1133,6 +1134,7 @@ function updateBlindsTable(data) {
         html += '</tr>';
     }
     tbody.innerHTML = html;
+    reapplySort(document.getElementById('blinds-table'));
 }
 
 // Polling logic
@@ -1191,6 +1193,7 @@ function sortTable(table, col, type) {
     var asc = (prevCol === String(col)) ? !(table.dataset.sortAsc === 'true') : true;
     table.dataset.sortCol = col;
     table.dataset.sortAsc = asc;
+    table.dataset.sortType = type;
 
     rows.sort(function(a, b) {
         var cellA = a.querySelectorAll('td')[col];
@@ -1210,6 +1213,37 @@ function sortTable(table, col, type) {
         return 0;
     });
 
+    for (var i = 0; i < rows.length; i++) {
+        tbody.appendChild(rows[i]);
+    }
+}
+
+// Re-apply current sort after AJAX table rebuild
+function reapplySort(table) {
+    if (!table || !table.dataset.sortCol) return;
+    var col = parseInt(table.dataset.sortCol, 10);
+    var asc = table.dataset.sortAsc === 'true';
+    var type = table.dataset.sortType || 'str';
+    var tbody = table.querySelector('tbody');
+    if (!tbody) return;
+    var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+    rows.sort(function(a, b) {
+        var cellA = a.querySelectorAll('td')[col];
+        var cellB = b.querySelectorAll('td')[col];
+        if (!cellA || !cellB) return 0;
+        var valA = cellA.hasAttribute('data-sort-value') ? cellA.getAttribute('data-sort-value') : cellA.textContent.trim();
+        var valB = cellB.hasAttribute('data-sort-value') ? cellB.getAttribute('data-sort-value') : cellB.textContent.trim();
+        if (type === 'num') {
+            valA = parseFloat(valA) || 0;
+            valB = parseFloat(valB) || 0;
+            return asc ? valA - valB : valB - valA;
+        }
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+        if (valA < valB) return asc ? -1 : 1;
+        if (valA > valB) return asc ? 1 : -1;
+        return 0;
+    });
     for (var i = 0; i < rows.length; i++) {
         tbody.appendChild(rows[i]);
     }
