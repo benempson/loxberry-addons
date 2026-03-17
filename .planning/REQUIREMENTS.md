@@ -53,6 +53,12 @@
 - [x] **PLUG-04**: Plugin registers cron job via Loxberry's cron system
 - [x] **PLUG-05**: Config stored as INI file readable by both Node.js and PHP
 
+### Auto-Update (UPDT)
+
+- **UPDT-01**: Plugin checks GitHub for newer versions and indicates update availability
+- **UPDT-02**: Plugin can self-update from GitHub without manual packaging and reinstallation
+- **UPDT-03**: Update process preserves user configuration and state data
+
 ## v2 Requirements
 
 ### Enhanced Monitoring
@@ -114,10 +120,13 @@
 | PLUG-03 | Phase 5 | Complete |
 | PLUG-04 | Phase 5 | Complete |
 | PLUG-05 | Phase 1 | Complete |
+| UPDT-01 | Phase 6 | Planned |
+| UPDT-02 | Phase 6 | Planned |
+| UPDT-03 | Phase 6 | Planned |
 
 **Coverage:**
-- v1 requirements: 30 total
-- Mapped to phases: 30
+- v1 requirements: 33 total
+- Mapped to phases: 33
 - Unmapped: 0
 
 ---

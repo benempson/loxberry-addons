@@ -17,6 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Alert Delivery** - Send alerts via Loxberry notifications and SMTP email, detect bridge offline state (completed 2026-03-16)
 - [ ] **Phase 4: Web Config UI** - PHP config pages for MQTT settings, thresholds, exclusions, notification preferences, and device status table
 - [ ] **Phase 5: Plugin Packaging and Release** - Loxberry addon directory structure, install/uninstall scripts, cron registration
+- [ ] **Phase 6: Auto-Update Mechanism** - Automatic plugin updates from GitHub without manual packaging and reinstallation
 
 ## Phase Details
 
@@ -119,6 +120,16 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 3. Alert Delivery | 3/3 | Complete   | 2026-03-16 |
 | 4. Web Config UI | 0/3 | Planning complete | - |
 | 5. Plugin Packaging and Release | 0/2 | Planning complete | - |
+| 6. Auto-Update Mechanism | 0/0 | Not started | - |
+
+### Phase 6: Auto-Update Mechanism
+**Goal**: Plugin can update itself automatically from GitHub releases without requiring manual packaging and installation
+**Depends on**: Phase 5
+**Requirements**: UPDT-01, UPDT-02, UPDT-03
+**Success Criteria** (what must be TRUE):
+  1. Plugin checks for new versions on GitHub and notifies the user when an update is available
+  2. Plugin can update itself from a GitHub release without requiring manual download and reinstall
+  3. Update process preserves user configuration and data files
 
 ### Phase 05.5: Blinds tab updates (INSERTED)
 
