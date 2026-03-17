@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.4-01-PLAN.md
-last_updated: "2026-03-17T12:29:36.300Z"
-last_activity: "2026-03-17 - Completed 05.4-01 (LQI column and Blinds tab)"
+stopped_at: Completed 05.4-02-PLAN.md
+last_updated: "2026-03-17T12:33:30.000Z"
+last_activity: "2026-03-17 - Completed 05.4-02 (AJAX polling for live device status)"
 progress:
   total_phases: 9
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 22
-  completed_plans: 20
+  completed_plans: 21
   percent: 95
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 ## Current Position
 
 Phase: 5.4 of 9 (Live monitoring of device state)
-Plan: 1 of 1 in current phase -- Complete
+Plan: 2 of 2 in current phase -- Complete
 Status: In Progress
-Last activity: 2026-03-17 - Completed 05.4-01 (LQI column and Blinds tab)
+Last activity: 2026-03-17 - Completed 05.4-02 (AJAX polling for live device status)
 
 Progress: [█████████░] 91%
 
@@ -71,6 +71,7 @@ Progress: [█████████░] 91%
 | Phase 05.3 P01 | 1min | 2 tasks | 1 files |
 | Phase quick P1 | 1min | 2 tasks | 3 files |
 | Phase 05.4 P01 | 2min | 2 tasks | 2 files |
+| Phase 05.4 P02 | 2min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -115,6 +116,9 @@ Recent decisions affecting current work:
 - [Phase 05.3]: Single shared jQuery Mobile popup with JS content swap for Z2M state tooltip
 - [Phase 05.4]: Moved z2m state computation before first td so LQI and alert status share same lookup
 - [Phase 05.4]: Blinds filter uses strpos on friendly_name prefix MS-108ZR
+- [Phase 05.4]: get_status_data handler mirrors PHP table_rows logic for identical JSON structure
+- [Phase 05.4]: Polling skips when Settings tab active (tab index 0) to avoid unnecessary requests
+- [Phase 05.4]: innerHTML rebuild with applyFilters() re-applied after each update
 
 ### Pending Todos
 
@@ -139,6 +143,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T12:29:36.297Z
-Stopped at: Completed 05.4-01-PLAN.md
+Last session: 2026-03-17T12:33:30.000Z
+Stopped at: Completed 05.4-02-PLAN.md
 Resume file: None

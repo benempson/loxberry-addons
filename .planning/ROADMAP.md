@@ -125,7 +125,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 **Goal:** Add live AJAX polling for device state updates, a Blinds tab for MS-108ZR cover devices, and a Link Quality column to the Device Status table.
 **Requirements**: N/A-INSERTED
 **Depends on:** Phase 5
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 05.4-01-PLAN.md — LQI column in Device Status table, Blinds tab with MS-108ZR filter
