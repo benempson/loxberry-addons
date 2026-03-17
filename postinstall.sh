@@ -20,8 +20,13 @@ echo "<INFO> Creating data directory"
 mkdir -p "$PDATA"
 chown loxberry:loxberry "$PDATA"
 
-# 2. Create default config if not present (preserves config on upgrade)
-if [ ! -f "$PCONFIG/watchdog.cfg" ]; then
+# 2. Restore backed-up config from preinstall, or create default
+if [ -f "/tmp/zigbee_watchdog_cfg_backup" ]; then
+    echo "<OK> Restoring existing configuration from backup"
+    cp "/tmp/zigbee_watchdog_cfg_backup" "$PCONFIG/watchdog.cfg"
+    chown loxberry:loxberry "$PCONFIG/watchdog.cfg"
+    rm -f "/tmp/zigbee_watchdog_cfg_backup"
+elif [ ! -f "$PCONFIG/watchdog.cfg" ]; then
     echo "<INFO> Creating default configuration"
     cat > "$PCONFIG/watchdog.cfg" << 'CFGEOF'
 [Z2M]
