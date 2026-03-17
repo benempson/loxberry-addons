@@ -821,6 +821,9 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
             <?php echo htmlspecialchars($L['MESSAGES.NO_DATA']); ?>
         </div>
 <?php else: ?>
+        <div id="status-refreshed" style="font-size:0.85em;color:#666;margin:5px 0;">
+            <?php echo htmlspecialchars($L['STATUS.DATA_REFRESHED']); ?><?php echo date('Y-m-d H:i:s'); ?>
+        </div>
         <table id="device-table" data-role="table" class="ui-responsive" style="width:100%;border-collapse:collapse;">
             <thead>
                 <tr style="background:#f5f5f5;">
@@ -878,6 +881,9 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
     <!-- BLINDS TAB                                                    -->
     <!-- ============================================================ -->
     <div id="tab-blinds">
+        <div id="blinds-refreshed" style="font-size:0.85em;color:#666;margin:10px 0 0 0;">
+            <?php echo htmlspecialchars($L['STATUS.DATA_REFRESHED']); ?><?php echo date('Y-m-d H:i:s'); ?>
+        </div>
         <table id="blinds-table" data-role="table" class="ui-responsive" style="width:100%;border-collapse:collapse;margin-top:20px;">
             <thead>
                 <tr style="background:#f5f5f5;">
@@ -1111,6 +1117,10 @@ function updateStatusTable(data) {
     }
 
     reapplySort(document.getElementById('device-table'));
+    var now = new Date();
+    var ts = now.getFullYear() + '-' + ('0'+(now.getMonth()+1)).slice(-2) + '-' + ('0'+now.getDate()).slice(-2) + ' ' + ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2) + ':' + ('0'+now.getSeconds()).slice(-2);
+    var el = document.getElementById('status-refreshed');
+    if (el) el.textContent = '<?php echo addslashes($L['STATUS.DATA_REFRESHED']); ?>' + ts;
     applyFilters();
 }
 
@@ -1135,6 +1145,10 @@ function updateBlindsTable(data) {
     }
     tbody.innerHTML = html;
     reapplySort(document.getElementById('blinds-table'));
+    var now = new Date();
+    var ts = now.getFullYear() + '-' + ('0'+(now.getMonth()+1)).slice(-2) + '-' + ('0'+now.getDate()).slice(-2) + ' ' + ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2) + ':' + ('0'+now.getSeconds()).slice(-2);
+    var el = document.getElementById('blinds-refreshed');
+    if (el) el.textContent = '<?php echo addslashes($L['STATUS.DATA_REFRESHED']); ?>' + ts;
 }
 
 // Polling logic
