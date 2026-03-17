@@ -1,0 +1,48 @@
+name: Release Plugin
+
+on:
+  release:
+    types: [released]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build plugin zip
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          ZIP_NAME="zigbee-watchdog-${TAG}.zip"
+          git archive --format=zip --output="${ZIP_NAME}" HEAD \
+            plugin.cfg preinstall.sh preupgrade.sh postinstall.sh \
+            uninstall/ bin/ webfrontend/ templates/ README.md
+          echo "ZIP_NAME=${ZIP_NAME}" >> $GITHUB_ENV
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP_NAME }}
+
+      - name: Update release.cfg
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          cat > release.cfg << EOF
+          [AUTOUPDATE]
+          VERSION=${TAG}
+          ARCHIVEURL=https://github.com/benempson/loxberry-addons/releases/download/${TAG}/zigbee-watchdog-${TAG}.zip
+          INFOURL=https://github.com/benempson/loxberry-addons/releases
+          EOF
+          # Remove leading whitespace from heredoc
+          sed -i 's/^          //' release.cfg
+
+      - name: Commit release.cfg
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add release.cfg
+          git diff --cached --quiet && echo "No changes to commit" || git commit -m "chore: update release.cfg for ${{ github.event.release.tag_name }}"
+          git push origin HEAD:main
