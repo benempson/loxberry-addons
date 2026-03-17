@@ -742,8 +742,11 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
     if ($row['alert_status'] === 'Offline') $badge_bg = '#f44336'; // red
     elseif ($row['alert_status'] === 'Low Battery') $badge_bg = '#FF9800'; // orange
     elseif ($row['alert_status'] === 'Excluded') $badge_bg = '#9E9E9E'; // grey
+
+    $device_z2m_state = isset($z2m_state_data) && is_array($z2m_state_data) && isset($z2m_state_data[$row['name']]) ? $z2m_state_data[$row['name']] : null;
+    $state_json_attr = $device_z2m_state ? htmlspecialchars(json_encode($device_z2m_state), ENT_QUOTES) : '';
 ?>
-                        <span style="background:<?php echo $badge_bg; ?>;color:#fff;padding:2px 8px;border-radius:3px;font-size:0.85em;">
+                        <span style="background:<?php echo $badge_bg; ?>;color:#fff;padding:2px 8px;border-radius:3px;font-size:0.85em;<?php echo $state_json_attr !== '' ? 'cursor:pointer;' : ''; ?>"<?php echo $state_json_attr !== '' ? ' data-z2m-state="' . $state_json_attr . '"' : ''; ?>>
                             <?php echo htmlspecialchars($row['alert_status']); ?>
                         </span>
                     </td>
@@ -755,6 +758,11 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
             </tbody>
         </table>
 <?php endif; ?>
+
+        <div data-role="popup" id="state-popup" class="ui-content" data-theme="a"
+             style="max-width:420px;max-height:350px;overflow:auto;">
+            <pre id="state-popup-content" style="margin:0;font-size:0.8em;white-space:pre-wrap;word-wrap:break-word;"></pre>
+        </div>
     </div>
 
 </div>
@@ -881,6 +889,21 @@ function wireExcludeCheckboxes() {
     }
 }
 wireExcludeCheckboxes();
+
+// Z2M state tooltip popup
+if (typeof jQuery !== 'undefined') {
+    jQuery(document).on('click', '[data-z2m-state]', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var raw = this.getAttribute('data-z2m-state');
+        if (!raw) return;
+        try {
+            var state = JSON.parse(raw);
+            jQuery('#state-popup-content').text(JSON.stringify(state, null, 2));
+            jQuery('#state-popup').popup('open', { positionTo: this });
+        } catch(ex) {}
+    });
+}
 
 // Sortable table for Device Status tab
 function sortTable(table, col, type) {
