@@ -39,10 +39,14 @@ fs.writeFileSync('bin/package.json', JSON.stringify(binPkg, null, 2) + '\n');
 const cfg = fs.readFileSync('plugin.cfg', 'utf8');
 fs.writeFileSync('plugin.cfg', cfg.replace(/^VERSION=.*/m, `VERSION=${newVersion}`));
 
-console.log('Updated: package.json, bin/package.json, plugin.cfg');
+// Update release.cfg
+const releaseCfg = `[AUTOUPDATE]\nVERSION=${newVersion}\nARCHIVEURL=https://github.com/benempson/loxberry-addons/releases/download/${newVersion}/zigbee-watchdog-${newVersion}.zip\nINFOURL=https://github.com/benempson/loxberry-addons/releases\n`;
+fs.writeFileSync('release.cfg', releaseCfg);
+
+console.log('Updated: package.json, bin/package.json, plugin.cfg, release.cfg');
 
 // Commit version bump
-execSync('git add package.json bin/package.json plugin.cfg', { stdio: 'inherit' });
+execSync('git add package.json bin/package.json plugin.cfg release.cfg', { stdio: 'inherit' });
 execSync(`git commit -m "chore: bump version to ${newVersion}"`, { stdio: 'inherit' });
 
 // Build zip from HEAD
