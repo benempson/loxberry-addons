@@ -743,7 +743,7 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
     elseif ($row['alert_status'] === 'Low Battery') $badge_bg = '#FF9800'; // orange
     elseif ($row['alert_status'] === 'Excluded') $badge_bg = '#9E9E9E'; // grey
 
-    $device_z2m_state = isset($z2m_state_data) && is_array($z2m_state_data) && isset($z2m_state_data[$row['name']]) ? $z2m_state_data[$row['name']] : null;
+    $device_z2m_state = isset($z2m_state_data) && is_array($z2m_state_data) && isset($z2m_state_data[$row['ieee']]) ? $z2m_state_data[$row['ieee']] : null;
     $state_json_attr = $device_z2m_state ? htmlspecialchars(json_encode($device_z2m_state), ENT_QUOTES) : '';
 ?>
                         <span style="background:<?php echo $badge_bg; ?>;color:#fff;padding:2px 8px;border-radius:3px;font-size:0.85em;<?php echo $state_json_attr !== '' ? 'cursor:pointer;' : ''; ?>"<?php echo $state_json_attr !== '' ? ' data-z2m-state="' . $state_json_attr . '"' : ''; ?>>
