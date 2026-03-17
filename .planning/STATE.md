@@ -151,9 +151,10 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 1 | Fix settings wiped on in-place install (preupgrade.sh) | 2026-03-17 | 1c7bf89 | [1-the-settings-are-still-being-wiped-when-](./quick/1-the-settings-are-still-being-wiped-when-/) |
+| 2 | Fix icon installation error during plugin install | 2026-03-17 | 675d0d8 | [260317-ngg-fix-icon-installation-error-during-plugi](./quick/260317-ngg-fix-icon-installation-error-during-plugi/) |
 
 ## Session Continuity
 
-Last session: 2026-03-17T15:42:48.498Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-03-17T15:57:00Z
+Stopped at: Completed quick task 260317-ngg (fix icon installation error)
 Resume file: None
