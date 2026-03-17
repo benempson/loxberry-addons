@@ -1043,6 +1043,127 @@ function wireExcludeCheckboxes() {
 }
 wireExcludeCheckboxes();
 
+// ------------------------------------------------------------------
+// AJAX polling: live-update Device Status and Blinds tables
+// ------------------------------------------------------------------
+
+function escapeAttr(s) {
+    return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function badgeColor(status) {
+    if (status === 'Offline') return '#f44336';
+    if (status === 'Low Battery') return '#FF9800';
+    if (status === 'Excluded') return '#9E9E9E';
+    return '#4CAF50';
+}
+
+function updateStatusTable(data) {
+    var tbody = document.querySelector('#device-table tbody');
+    if (!tbody || !data.devices) return;
+    var html = '';
+    for (var i = 0; i < data.devices.length; i++) {
+        var d = data.devices[i];
+        var stateAttr = d.z2m_state ? ' data-z2m-state="' + escapeAttr(JSON.stringify(d.z2m_state)) + '"' : '';
+        var cursorStyle = d.z2m_state ? 'cursor:pointer;' : '';
+        var bg = badgeColor(d.alert_status);
+        var batteryText = d.battery !== null ? d.battery + '%' : 'N/A';
+        var lqiText = d.linkquality !== null ? d.linkquality : 'N/A';
+        var lqiSort = d.linkquality !== null ? d.linkquality : -1;
+
+        html += '<tr style="border-bottom:1px solid #ddd;" data-ieee="' + escapeAttr(d.ieee) + '" data-excluded="' + (d.is_excluded ? '1' : '0') + '">';
+        html += '<td style="padding:8px;">' + escapeAttr(d.name) + '</td>';
+        html += '<td style="padding:8px;">' + escapeAttr(d.description) + '</td>';
+        html += '<td style="padding:8px;" data-sort-value="' + d.last_seen_ts + '">' + escapeAttr(d.last_seen_age) + '</td>';
+        html += '<td style="padding:8px;" data-sort-value="' + d.battery_sort + '">' + batteryText + '</td>';
+        html += '<td style="padding:8px;" data-sort-value="' + lqiSort + '">' + lqiText + '</td>';
+        html += '<td style="padding:8px;" data-sort-value="' + d.sort_priority + '">';
+        html += '<span style="background:' + bg + ';color:#fff;padding:2px 8px;border-radius:3px;font-size:0.85em;' + cursorStyle + '"' + stateAttr + '>';
+        html += escapeAttr(d.alert_status);
+        html += '</span></td>';
+        html += '<td style="padding:8px;">';
+        html += '<input type="checkbox" class="exclude-cb" data-ieee="' + escapeAttr(d.ieee) + '"' + (d.is_excluded ? ' checked' : '') + '>';
+        html += '</td></tr>';
+    }
+    tbody.innerHTML = html;
+
+    // Update last_run text
+    if (data.last_run) {
+        var spans = document.querySelectorAll('#tab-status span');
+        for (var j = 0; j < spans.length; j++) {
+            var txt = spans[j].textContent || '';
+            if (txt.indexOf('<?php echo addslashes($L['STATUS.LAST_UPDATED']); ?>') !== -1 || txt.indexOf('Last updated') !== -1) {
+                try {
+                    var dt = new Date(data.last_run);
+                    var formatted = dt.getFullYear() + '-' +
+                        ('0' + (dt.getMonth()+1)).slice(-2) + '-' +
+                        ('0' + dt.getDate()).slice(-2) + ' ' +
+                        ('0' + dt.getHours()).slice(-2) + ':' +
+                        ('0' + dt.getMinutes()).slice(-2) + ':' +
+                        ('0' + dt.getSeconds()).slice(-2);
+                    spans[j].innerHTML = '<?php echo addslashes($L['STATUS.LAST_UPDATED']); ?>' + formatted;
+                } catch(e) {}
+                break;
+            }
+        }
+    }
+
+    applyFilters();
+}
+
+function updateBlindsTable(data) {
+    var tbody = document.querySelector('#blinds-table tbody');
+    if (!tbody || !data.devices) return;
+    var html = '';
+    for (var i = 0; i < data.devices.length; i++) {
+        var d = data.devices[i];
+        if (d.name.indexOf('MS-108ZR') !== 0) continue;
+        var z = d.z2m_state || {};
+        var pos = z.position !== undefined && z.position !== null ? z.position + '%' : 'N/A';
+        var st = z.state !== undefined && z.state !== null ? escapeAttr(String(z.state)) : 'N/A';
+        var mr = z.motor_reversal !== undefined && z.motor_reversal !== null ? escapeAttr(String(z.motor_reversal)) : 'N/A';
+        html += '<tr style="border-bottom:1px solid #ddd;">';
+        html += '<td style="padding:8px;">' + escapeAttr(d.name) + '</td>';
+        html += '<td style="padding:8px;">' + pos + '</td>';
+        html += '<td style="padding:8px;">' + st + '</td>';
+        html += '<td style="padding:8px;">' + mr + '</td>';
+        html += '</tr>';
+    }
+    tbody.innerHTML = html;
+}
+
+// Polling logic
+var pollTimer = null;
+var POLL_INTERVAL = 30000;
+
+function startPolling() {
+    if (pollTimer) return;
+    pollTimer = setInterval(function() {
+        if (document.hidden) return;
+        // Only poll if status or blinds tab is active (not settings)
+        try {
+            var activeTab = jQuery('[data-role="tabs"]').tabs('option', 'active');
+            if (activeTab === 0) return; // Settings tab -- skip
+        } catch(e) {}
+        jQuery.post('index.php', { action: 'get_status_data' }, function(data) {
+            updateStatusTable(data);
+            updateBlindsTable(data);
+        }, 'json').fail(function() {
+            // Silent fail -- next poll will retry
+        });
+    }, POLL_INTERVAL);
+}
+
+function stopPolling() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+if (typeof jQuery !== 'undefined') {
+    jQuery(document).on('pagecreate', function() {
+        startPolling();
+    });
+}
+
 // Z2M state tooltip popup
 if (typeof jQuery !== 'undefined') {
     jQuery(document).on('click', '[data-z2m-state]', function(e) {
