@@ -788,55 +788,99 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Shared filter function for search + show-excluded
 function applyFilters() {
-    var query = (document.getElementById('device-search').value || '').toLowerCase();
-    var showExcluded = document.getElementById('show-excluded').checked;
+    var searchEl = document.getElementById('device-search');
+    var showExcludedEl = document.getElementById('show-excluded');
+    var query = (searchEl ? searchEl.value : '').toLowerCase();
+    var showExcluded = showExcludedEl ? showExcludedEl.checked : true;
     var rows = document.querySelectorAll('#device-table tbody tr');
     for (var i = 0; i < rows.length; i++) {
         var name = (rows[i].querySelector('td') || {}).textContent || '';
+        var desc = rows[i].querySelectorAll('td')[1] ? rows[i].querySelectorAll('td')[1].textContent : '';
+        var searchText = (name + ' ' + desc).toLowerCase();
         var excluded = rows[i].getAttribute('data-excluded') === '1';
-        var matchesSearch = name.toLowerCase().indexOf(query) !== -1;
+        var matchesSearch = query.length < 2 || searchText.indexOf(query) !== -1;
         var matchesExcluded = showExcluded || !excluded;
         rows[i].style.display = (matchesSearch && matchesExcluded) ? '' : 'none';
     }
 }
 
-// Wire search input to applyFilters
-var deviceSearch = document.getElementById('device-search');
-if (deviceSearch) {
-    deviceSearch.addEventListener('input', function() {
-        applyFilters();
+// Debounced search: 2 char minimum, 350ms delay
+var searchTimer = null;
+function wireSearch() {
+    var el = document.getElementById('device-search');
+    if (!el) return;
+    el.addEventListener('input', function() {
+        if (searchTimer) clearTimeout(searchTimer);
+        searchTimer = setTimeout(function() { applyFilters(); }, 350);
     });
+    // Also handle jQuery Mobile wrapped input
+    if (typeof jQuery !== 'undefined') {
+        jQuery(document).on('input', '#device-search', function() {
+            if (searchTimer) clearTimeout(searchTimer);
+            searchTimer = setTimeout(function() { applyFilters(); }, 350);
+        });
+    }
 }
+wireSearch();
 
-// Wire show-excluded checkbox to applyFilters
-var showExcludedCb = document.getElementById('show-excluded');
-if (showExcludedCb) {
-    showExcludedCb.addEventListener('change', function() {
-        applyFilters();
-    });
+// Wire show-excluded checkbox -- use jQuery for jQuery Mobile compatibility
+function wireShowExcluded() {
+    var el = document.getElementById('show-excluded');
+    if (!el) return;
+    // Native listener
+    el.addEventListener('change', function() { applyFilters(); });
+    // jQuery Mobile listener (JQM wraps checkboxes)
+    if (typeof jQuery !== 'undefined') {
+        jQuery(document).on('change', '#show-excluded', function() { applyFilters(); });
+    }
 }
+wireShowExcluded();
 
-// AJAX handler for exclude checkboxes
-document.addEventListener('change', function(e) {
-    if (!e.target.classList.contains('exclude-cb')) return;
-    var cb = e.target;
-    var ieee = cb.getAttribute('data-ieee');
-    var checked = cb.checked ? '1' : '0';
-    var row = cb.closest('tr');
-    row.setAttribute('data-excluded', cb.checked ? '1' : '0');
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', 'index.php', true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-    xhr.onload = function() {
-        if (xhr.status !== 200) {
-            cb.checked = !cb.checked; // revert on failure
-            row.setAttribute('data-excluded', cb.checked ? '1' : '0');
-        }
-        applyFilters(); // re-apply show/hide
-    };
-    xhr.send('action=save_exclusion&ieee=' + encodeURIComponent(ieee) + '&checked=' + checked);
-    applyFilters(); // immediately apply filter
-});
+// AJAX handler for exclude checkboxes -- uses event delegation
+function wireExcludeCheckboxes() {
+    // Use jQuery delegation for jQuery Mobile compatibility
+    if (typeof jQuery !== 'undefined') {
+        jQuery(document).on('change', '.exclude-cb', function() {
+            var cb = this;
+            var ieee = cb.getAttribute('data-ieee');
+            var checked = cb.checked ? '1' : '0';
+            var row = jQuery(cb).closest('tr')[0];
+            if (row) row.setAttribute('data-excluded', cb.checked ? '1' : '0');
+            jQuery.post('index.php', { action: 'save_exclusion', ieee: ieee, checked: checked })
+                .fail(function() {
+                    cb.checked = !cb.checked;
+                    if (row) row.setAttribute('data-excluded', cb.checked ? '1' : '0');
+                })
+                .always(function() {
+                    applyFilters();
+                });
+            applyFilters();
+        });
+    } else {
+        // Fallback: native event delegation
+        document.addEventListener('change', function(e) {
+            if (!e.target.classList.contains('exclude-cb')) return;
+            var cb = e.target;
+            var ieee = cb.getAttribute('data-ieee');
+            var checked = cb.checked ? '1' : '0';
+            var row = cb.closest('tr');
+            if (row) row.setAttribute('data-excluded', cb.checked ? '1' : '0');
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'index.php', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.onload = function() {
+                if (xhr.status !== 200) {
+                    cb.checked = !cb.checked;
+                    if (row) row.setAttribute('data-excluded', cb.checked ? '1' : '0');
+                }
+                applyFilters();
+            };
+            xhr.send('action=save_exclusion&ieee=' + encodeURIComponent(ieee) + '&checked=' + checked);
+            applyFilters();
+        });
+    }
+}
+wireExcludeCheckboxes();
 
 // Sortable table for Device Status tab
 function sortTable(table, col, type) {
