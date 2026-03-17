@@ -83,6 +83,7 @@ function mergeDeviceState(state, registry, z2mState) {
 
     state.devices[ieee] = {
       friendly_name: regEntry.friendly_name,
+      description: regEntry.description || '',
       power_source: regEntry.power_source,
       type: regEntry.type,
       last_seen: lastSeen,
@@ -92,6 +93,13 @@ function mergeDeviceState(state, registry, z2mState) {
         battery: false, battery_sent_at: null,
       },
     };
+  }
+
+  // Prune devices no longer in z2m registry
+  for (const ieee of Object.keys(state.devices)) {
+    if (!registry.has(ieee)) {
+      delete state.devices[ieee];
+    }
   }
 }
 

@@ -32,6 +32,7 @@ function buildDeviceRegistry(databaseEntries, devicesYaml) {
 
     registry.set(device.ieeeAddr, {
       friendly_name: yamlEntry.friendly_name || device.ieeeAddr,
+      description: yamlEntry.description || '',
       power_source: device.powerSource || 'Unknown',
       type: device.type,
       model_id: device.modelId || null,
