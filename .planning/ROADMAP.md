@@ -120,7 +120,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 3. Alert Delivery | 3/3 | Complete   | 2026-03-16 |
 | 4. Web Config UI | 0/3 | Planning complete | - |
 | 5. Plugin Packaging and Release | 0/2 | Planning complete | - |
-| 6. Auto-Update Mechanism | 0/0 | Not started | - |
+| 6. Auto-Update Mechanism | 0/1 | Planning complete | - |
 
 ### Phase 6: Auto-Update Mechanism
 **Goal**: Plugin can update itself automatically from GitHub releases without requiring manual packaging and installation
@@ -130,6 +130,10 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
   1. Plugin checks for new versions on GitHub and notifies the user when an update is available
   2. Plugin can update itself from a GitHub release without requiring manual download and reinstall
   3. Update process preserves user configuration and data files
+**Plans:** 1 plan
+
+Plans:
+- [ ] 06-01-PLAN.md — Configure Loxberry auto-update (release.cfg, plugin.cfg, release.js, GitHub Actions workflow)
 
 ### Phase 05.5: Blinds tab updates (INSERTED)
 
