@@ -20,7 +20,7 @@ echo "<INFO> Creating data directory"
 mkdir -p "$PDATA"
 chown loxberry:loxberry "$PDATA"
 
-# 2. Restore backed-up config from preinstall, or create default
+# 2. Restore backed-up config from preupgrade, or create default
 if [ -f "/tmp/zigbee_watchdog_cfg_backup" ]; then
     echo "<OK> Restoring existing configuration from backup"
     cp "/tmp/zigbee_watchdog_cfg_backup" "$PCONFIG/watchdog.cfg"
@@ -56,6 +56,15 @@ CFGEOF
     chown loxberry:loxberry "$PCONFIG/watchdog.cfg"
 else
     echo "<OK> Existing configuration preserved"
+fi
+
+# 2b. Restore backed-up data from preupgrade
+if [ -d "/tmp/zigbee_watchdog_data_backup" ]; then
+    echo "<OK> Restoring existing data from backup"
+    mkdir -p "$PDATA"
+    cp -a /tmp/zigbee_watchdog_data_backup/* "$PDATA/" 2>/dev/null || true
+    chown -R loxberry:loxberry "$PDATA"
+    rm -rf "/tmp/zigbee_watchdog_data_backup"
 fi
 
 # 3. Install Node.js dependencies
