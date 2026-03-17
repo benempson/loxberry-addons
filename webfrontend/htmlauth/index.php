@@ -243,6 +243,23 @@ function collect_form_config($defaults, $cfgfile) {
 }
 
 // ------------------------------------------------------------------
+// Helper: resolve z2m data path from config or auto-detect
+// ------------------------------------------------------------------
+function resolve_z2m_path($config) {
+    $path = isset($config['Z2M']['z2m_data_path']) ? $config['Z2M']['z2m_data_path'] : '';
+    if (empty($path)) {
+        $search_paths = array('/opt/zigbee2mqtt/data', '/opt/loxberry/data/plugins/zigbee2mqtt/zigbee2mqtt/', '/opt/loxberry/data/plugins/zigbee2mqtt/');
+        foreach ($search_paths as $try_path) {
+            if (file_exists($try_path . '/state.json')) {
+                $path = $try_path;
+                break;
+            }
+        }
+    }
+    return $path;
+}
+
+// ------------------------------------------------------------------
 // POST handler: Save Settings / Verify Z2M / Test Email / Exclusion
 // ------------------------------------------------------------------
 $error = '';
@@ -272,6 +289,97 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $ok = write_config($cfgfile, $current);
         header('Content-Type: application/json');
         echo json_encode(array('success' => $ok));
+        exit;
+    }
+
+    // AJAX: return fresh device status data as JSON (for live polling)
+    if ($_POST['action'] === 'get_status_data') {
+        header('Content-Type: application/json');
+        $current_config = read_config($cfgfile, $defaults);
+        $z2m_path = resolve_z2m_path($current_config);
+
+        // Read watchdog state
+        $state_raw = @file_get_contents(LBPDATADIR . '/state.json');
+        $state_data = $state_raw ? @json_decode($state_raw, true) : array();
+        $devs = isset($state_data['devices']) ? $state_data['devices'] : array();
+
+        // Read z2m state
+        $z2m_state = array();
+        if (!empty($z2m_path) && file_exists($z2m_path . '/state.json')) {
+            $z2m_raw = @file_get_contents($z2m_path . '/state.json');
+            $z2m_state = $z2m_raw ? @json_decode($z2m_raw, true) : array();
+            if (!is_array($z2m_state)) $z2m_state = array();
+        }
+
+        // Exclusion list
+        $excl_raw_aj = trim($current_config['EXCLUSIONS']['devices']);
+        $excl_list_aj = $excl_raw_aj !== '' ? array_map('trim', explode(',', $excl_raw_aj)) : array();
+
+        // Build device rows (mirror the PHP $table_rows logic)
+        $now_aj = time();
+        $rows_aj = array();
+        foreach ($devs as $ieee => $dev) {
+            $name = isset($dev['friendly_name']) ? $dev['friendly_name'] : $ieee;
+            $last_seen = isset($dev['last_seen']) && $dev['last_seen'] ? $dev['last_seen'] : null;
+            $last_seen_ts = $last_seen ? strtotime($last_seen) : 0;
+            $last_seen_age = $last_seen_ts > 0 ? formatAge($now_aj - $last_seen_ts) : 'Never';
+
+            $battery = null;
+            $battery_sort = -1;
+            $power_source = isset($dev['power_source']) ? $dev['power_source'] : '';
+            if (strtolower($power_source) !== 'mains' && isset($dev['battery'])) {
+                $battery = intval($dev['battery']);
+                $battery_sort = $battery;
+            }
+
+            $alert_status = 'OK';
+            $sort_priority = 3;
+            $alerts = isset($dev['alerts']) ? $dev['alerts'] : array();
+            if (isset($alerts['offline']['active']) && $alerts['offline']['active']) {
+                $alert_status = 'Offline';
+                $sort_priority = 0;
+            } elseif (isset($alerts['battery']['active']) && $alerts['battery']['active']) {
+                $alert_status = 'Low Battery';
+                $sort_priority = 1;
+            }
+            $is_excluded = in_array($ieee, $excl_list_aj);
+            if ($sort_priority > 1 && $is_excluded) {
+                $alert_status = 'Excluded';
+                $sort_priority = 2;
+            }
+
+            // Z2M state for this device
+            $dev_z2m = isset($z2m_state[$ieee]) ? $z2m_state[$ieee] : null;
+            $lqi = ($dev_z2m && isset($dev_z2m['linkquality'])) ? intval($dev_z2m['linkquality']) : null;
+
+            $rows_aj[] = array(
+                'ieee' => $ieee,
+                'name' => $name,
+                'description' => isset($dev['description']) ? $dev['description'] : '',
+                'last_seen_age' => $last_seen_age,
+                'last_seen_ts' => $last_seen_ts,
+                'battery' => $battery,
+                'battery_sort' => $battery_sort,
+                'alert_status' => $alert_status,
+                'sort_priority' => $sort_priority,
+                'is_excluded' => $is_excluded,
+                'linkquality' => $lqi,
+                'z2m_state' => $dev_z2m,
+            );
+        }
+
+        // Sort: alerts first, then alphabetical
+        usort($rows_aj, function($a, $b) {
+            if ($a['sort_priority'] !== $b['sort_priority']) {
+                return $a['sort_priority'] - $b['sort_priority'];
+            }
+            return strcasecmp($a['name'], $b['name']);
+        });
+
+        echo json_encode(array(
+            'devices' => $rows_aj,
+            'last_run' => isset($state_data['last_run']) ? $state_data['last_run'] : null,
+        ));
         exit;
     }
 
@@ -353,17 +461,7 @@ $config = read_config($cfgfile, $defaults);
 // Compute Z2M status for settings page display
 // ------------------------------------------------------------------
 $z2m_status_text = '';
-$z2m_data_path = $config['Z2M']['z2m_data_path'] ?? '';
-if (empty($z2m_data_path)) {
-    // Try auto-detect: check known paths for state.json
-    $search_paths = array('/opt/zigbee2mqtt/data', '/opt/loxberry/data/plugins/zigbee2mqtt/zigbee2mqtt/', '/opt/loxberry/data/plugins/zigbee2mqtt/');
-    foreach ($search_paths as $try_path) {
-        if (file_exists($try_path . '/state.json')) {
-            $z2m_data_path = $try_path;
-            break;
-        }
-    }
-}
+$z2m_data_path = resolve_z2m_path($config);
 if (!empty($z2m_data_path) && file_exists($z2m_data_path . '/state.json')) {
     $z2m_state_raw = @file_get_contents($z2m_data_path . '/state.json');
     $z2m_state_data = $z2m_state_raw ? @json_decode($z2m_state_raw, true) : array();
