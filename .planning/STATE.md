@@ -121,6 +121,11 @@ Recent decisions affecting current work:
 - [Phase 05.4]: Polling skips when Settings tab active (tab index 0) to avoid unnecessary requests
 - [Phase 05.4]: innerHTML rebuild with applyFilters() re-applied after each update
 - [Phase 05.5]: Position column uses num sort type; State and Motor Reversal use str sort type
+- [Bugfix]: Z2M state tooltip lookup used friendly_name but state.json is keyed by IEEE address; fixed to use $row['ieee']
+- [Bugfix]: preupgrade.sh was missing from git archive build command in README.md; settings still wiped because zip didn't include it
+- [Bugfix]: AJAX table rebuild (30s poll) now re-applies active sort via reapplySort() using stored sortCol/sortAsc/sortType
+- [Feature]: Z2M state tooltip fetches live data via get_device_state AJAX endpoint instead of reading cached data-z2m-state attribute
+- [Feature]: "Data refreshed" timestamp shown above Device Status and Blinds tables, updated on each AJAX poll
 
 ### Pending Todos
 
