@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 Phase: 5.3 of 8 (Display device state in tooltip on device status page)
 Plan: 1 of 1 in current phase -- Complete
 Status: In Progress
-Last activity: 2026-03-17 -- Completed 05.3-01 (tooltip, search fixes)
+Last activity: 2026-03-17 - Completed quick task 1: Fix settings wiped on in-place install
 
 Progress: [██████████] 95%
 
@@ -126,6 +126,12 @@ None yet.
 ### Blockers/Concerns
 
 - Phase 1, 3, 4 require live Loxberry host verification before implementation (plugin directory layout, notification API, PHP version).
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 1 | Fix settings wiped on in-place install (preupgrade.sh) | 2026-03-17 | 1c7bf89 | [1-the-settings-are-still-being-wiped-when-](./quick/1-the-settings-are-still-being-wiped-when-/) |
 
 ## Session Continuity
 
