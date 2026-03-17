@@ -120,6 +120,17 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 4. Web Config UI | 0/3 | Planning complete | - |
 | 5. Plugin Packaging and Release | 0/2 | Planning complete | - |
 
+### Phase 05.4: Live monitoring of device state (INSERTED)
+
+**Goal:** Add live AJAX polling for device state updates, a Blinds tab for MS-108ZR cover devices, and a Link Quality column to the Device Status table.
+**Requirements**: N/A-INSERTED
+**Depends on:** Phase 5
+**Plans:** 2 plans
+
+Plans:
+- [ ] 05.4-01-PLAN.md — LQI column in Device Status table, Blinds tab with MS-108ZR filter
+- [ ] 05.4-02-PLAN.md — AJAX polling endpoint and client-side live table rebuild
+
 ### Phase 05.3: Display device state in tooltip on device status page (INSERTED)
 
 **Goal:** Add Z2M device state tooltip to alert badges, fix search placeholder alignment, and fix clear-search button on the device status page.
