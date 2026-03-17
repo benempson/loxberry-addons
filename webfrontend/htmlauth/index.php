@@ -293,6 +293,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 
     // AJAX: return fresh device status data as JSON (for live polling)
+    if ($_POST['action'] === 'get_device_state' && !empty($_POST['ieee'])) {
+        header('Content-Type: application/json');
+        $current_config = read_config($cfgfile, $defaults);
+        $z2m_path = resolve_z2m_path($current_config);
+        $ieee = $_POST['ieee'];
+        $state = null;
+        if (!empty($z2m_path) && file_exists($z2m_path . '/state.json')) {
+            $z2m_raw = @file_get_contents($z2m_path . '/state.json');
+            $z2m_data = $z2m_raw ? @json_decode($z2m_raw, true) : array();
+            if (is_array($z2m_data) && isset($z2m_data[$ieee])) {
+                $state = $z2m_data[$ieee];
+            }
+        }
+        echo json_encode(array('ieee' => $ieee, 'state' => $state));
+        exit;
+    }
+
     if ($_POST['action'] === 'get_status_data') {
         header('Content-Type: application/json');
         $current_config = read_config($cfgfile, $defaults);
@@ -1183,18 +1200,25 @@ if (typeof jQuery !== 'undefined') {
     });
 }
 
-// Z2M state tooltip popup
+// Z2M state tooltip popup — fetches live data on click
 if (typeof jQuery !== 'undefined') {
     jQuery(document).on('click', '[data-z2m-state]', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        var raw = this.getAttribute('data-z2m-state');
-        if (!raw) return;
-        try {
-            var state = JSON.parse(raw);
-            jQuery('#state-popup-content').text(JSON.stringify(state, null, 2));
-            jQuery('#state-popup').popup('open', { positionTo: this });
-        } catch(ex) {}
+        var badge = jQuery(this);
+        var ieee = badge.closest('tr').attr('data-ieee');
+        if (!ieee) return;
+        jQuery('#state-popup-content').text('Loading...');
+        jQuery('#state-popup').popup('open', { positionTo: this });
+        jQuery.post('index.php', { action: 'get_device_state', ieee: ieee }, function(data) {
+            if (data && data.state) {
+                jQuery('#state-popup-content').text(JSON.stringify(data.state, null, 2));
+            } else {
+                jQuery('#state-popup-content').text('No state data available');
+            }
+        }, 'json').fail(function() {
+            jQuery('#state-popup-content').text('Failed to fetch state');
+        });
     });
 }
 
