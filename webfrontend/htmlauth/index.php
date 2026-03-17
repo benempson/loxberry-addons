@@ -767,6 +767,13 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
 
 </div>
 
+<!-- Search input padding fix for magnifying glass icon -->
+<style>
+#device-search {
+    padding-left: 2.2em !important;
+}
+</style>
+
 <!-- Inline JS: SMTP toggle, password reveal, device filters, exclusion AJAX -->
 <script>
 // Toggle SMTP fields visibility based on email_enabled slider
@@ -820,6 +827,10 @@ function wireSearch() {
     el.addEventListener('input', function() {
         if (searchTimer) clearTimeout(searchTimer);
         searchTimer = setTimeout(function() { applyFilters(); }, 350);
+    });
+    el.addEventListener('search', function() {
+        if (searchTimer) clearTimeout(searchTimer);
+        applyFilters();
     });
     // Also handle jQuery Mobile wrapped input
     if (typeof jQuery !== 'undefined') {
