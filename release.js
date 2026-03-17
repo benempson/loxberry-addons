@@ -53,7 +53,7 @@ execSync(`git commit -m "chore: bump version to ${newVersion}"`, { stdio: 'inher
 const zipName = `zigbee-watchdog-${newVersion}.zip`;
 const files = [
   'plugin.cfg', 'preinstall.sh', 'preupgrade.sh', 'postinstall.sh',
-  'uninstall/', 'bin/', 'webfrontend/', 'templates/', 'README.md',
+  'uninstall/', 'bin/', 'webfrontend/', 'templates/', 'icons/', 'README.md',
 ].join(' ');
 execSync(`git archive --format=zip --output=${zipName} HEAD ${files}`, { stdio: 'inherit' });
 
