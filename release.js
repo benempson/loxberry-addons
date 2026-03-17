@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// release.js — Bump version in all 3 files, commit, and build install zip
+// release.js — Bump version, commit, build zip, push, and create GitHub Release
 // Usage: node release.js [major|minor|patch]
 // Default: patch
 
@@ -56,5 +56,18 @@ const files = [
   'uninstall/', 'bin/', 'webfrontend/', 'templates/', 'icons/', 'README.md',
 ].join(' ');
 execSync(`git archive --format=zip --output=${zipName} HEAD ${files}`, { stdio: 'inherit' });
-
 console.log(`Built: ${zipName}`);
+
+// Push to remote
+console.log('Pushing to origin...');
+execSync('git push origin main', { stdio: 'inherit' });
+
+// Create GitHub Release with zip attached
+console.log(`Creating GitHub Release ${newVersion}...`);
+execSync(`gh release create ${newVersion} ${zipName} --title "v${newVersion}" --generate-notes`, { stdio: 'inherit' });
+
+// Clean up local zip
+fs.unlinkSync(zipName);
+
+console.log(`\nDone! v${newVersion} released.`);
+console.log('GitHub Actions will also attach the zip and update release.cfg on main.');

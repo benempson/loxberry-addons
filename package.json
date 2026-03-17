@@ -5,7 +5,8 @@
   "main": "bin/watchdog.js",
   "scripts": {
     "test": "jest",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "release": "node release.js"
   },
   "dependencies": {
     "ini": "^5.0.0",
