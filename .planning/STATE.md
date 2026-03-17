@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.5-01-PLAN.md
-last_updated: "2026-03-17T12:59:37.399Z"
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-03-17T15:42:48.501Z"
 last_activity: 2026-03-17 - Completed 05.5-01 (Blinds tab Description column, sortable headers, spacing)
 progress:
-  total_phases: 10
-  completed_phases: 9
-  total_plans: 23
-  completed_plans: 22
+  total_phases: 11
+  completed_phases: 10
+  total_plans: 24
+  completed_plans: 23
   percent: 96
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Proactively alert when Zigbee devices are offline or low on battery so they can be fixed before the user notices missing functionality around the house.
-**Current focus:** Phase 5.5: Blinds tab updates
+**Current focus:** Phase 6: Auto-update mechanism
 
 ## Current Position
 
-Phase: 5.5 of 10 (Blinds tab updates)
+Phase: 6 of 10 (Auto-update mechanism)
 Plan: 1 of 1 in current phase -- Complete
 Status: In Progress
-Last activity: 2026-03-17 - Completed 05.5-01 (Blinds tab Description column, sortable headers, spacing)
+Last activity: 2026-03-17 - Completed 06-01 (Loxberry auto-update via release.cfg, GitHub Actions, enhanced release.js)
 
 Progress: [██████████] 96%
 
@@ -73,6 +73,7 @@ Progress: [██████████] 96%
 | Phase 05.4 P01 | 2min | 2 tasks | 2 files |
 | Phase 05.4 P02 | 2min | 2 tasks | 1 files |
 | Phase 05.5 P01 | 1min | 1 tasks | 1 files |
+| Phase 06 P01 | 1min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -126,6 +127,8 @@ Recent decisions affecting current work:
 - [Bugfix]: AJAX table rebuild (30s poll) now re-applies active sort via reapplySort() using stored sortCol/sortAsc/sortType
 - [Feature]: Z2M state tooltip fetches live data via get_device_state AJAX endpoint instead of reading cached data-z2m-state attribute
 - [Feature]: "Data refreshed" timestamp shown above Device Status and Blinds tables, updated on each AJAX poll
+- [Phase 06]: GitHub Actions workflow updates release.cfg and pushes to main after each release
+- [Phase 06]: release.js also updates release.cfg locally for version consistency during manual bumps
 
 ### Pending Todos
 
@@ -151,6 +154,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T12:56:37.629Z
-Stopped at: Completed 05.5-01-PLAN.md
+Last session: 2026-03-17T15:42:48.498Z
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None
