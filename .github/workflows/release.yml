@@ -19,7 +19,7 @@ jobs:
           ZIP_NAME="zigbee-watchdog-${TAG}.zip"
           git archive --format=zip --output="${ZIP_NAME}" HEAD \
             plugin.cfg preinstall.sh preupgrade.sh postinstall.sh \
-            uninstall/ bin/ webfrontend/ templates/ README.md
+            uninstall/ bin/ webfrontend/ templates/ icons/ README.md
           echo "ZIP_NAME=${ZIP_NAME}" >> $GITHUB_ENV
 
       - name: Upload release asset
