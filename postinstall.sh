@@ -98,7 +98,7 @@ fi
 
 CRON_FILE="/tmp/${ARGV3}_cron"
 echo "$CRON_EXPR loxberry /usr/bin/node $PBIN/watchdog.js > /dev/null 2>&1" > "$CRON_FILE"
-$LBHOMEDIR/sbin/installcrontab.sh "$ARGV3" "$CRON_FILE" 2>&1
+sudo $LBHOMEDIR/sbin/installcrontab.sh "$ARGV3" "$CRON_FILE" 2>&1
 rm -f "$CRON_FILE"
 
 # 5. Check Node.js availability
