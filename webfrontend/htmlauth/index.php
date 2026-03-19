@@ -191,6 +191,16 @@ function update_cron($interval_minutes) {
     file_put_contents($tmp_file, $cron_line . "\n");
     exec('sudo ' . LBHOMEDIR . '/sbin/installcrontab.sh ' . escapeshellarg($plugin_name) . ' ' . escapeshellarg($tmp_file) . ' 2>&1', $output, $retval);
     @unlink($tmp_file);
+    // Log cron installation result for debugging
+    $log_entry = json_encode(array(
+        'ts' => gmdate('Y-m-d\TH:i:s.000\Z'),
+        'sev' => $retval === 0 ? 'Info' : 'Error',
+        'src' => 'cron',
+        'msg' => $retval === 0
+            ? 'Cron job installed: ' . $cron_expr
+            : 'Cron install failed (exit ' . $retval . '): ' . implode(' ', $output),
+    )) . "\n";
+    @file_put_contents(LBPDATADIR . '/watchdog.log', $log_entry, FILE_APPEND | LOCK_EX);
     return $retval === 0;
 }
 
