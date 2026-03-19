@@ -127,7 +127,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 **Goal:** Add structured logging to the watchdog plugin and a Logs tab to the web UI with filtered display, auto-polling, severity badges, and configurable log retention settings.
 **Requirements**: LOG-01, LOG-02, LOG-03, LOG-04, LOG-05, LOG-06
 **Depends on:** Phase 5
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 05.6-01-PLAN.md — Node.js logger module with rotation, config defaults, watchdog/notify instrumentation

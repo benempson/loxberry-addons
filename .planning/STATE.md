@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 5.6 UI-SPEC approved
-last_updated: "2026-03-19T15:40:56.765Z"
-last_activity: 2026-03-17 - Completed 06-01 (Loxberry auto-update via release.cfg, GitHub Actions, enhanced release.js)
+status: completed
+stopped_at: Completed 05.6-02-PLAN.md
+last_updated: "2026-03-19T15:48:32.612Z"
+last_activity: 2026-03-19 - Completed 05.6-02 (Logs tab UI, AJAX endpoint, filters, polling, Settings logging section)
 progress:
   total_phases: 12
-  completed_phases: 10
+  completed_phases: 11
   total_plans: 26
-  completed_plans: 24
+  completed_plans: 25
   percent: 96
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-14)
 ## Current Position
 
 Phase: 5.6 (Create log viewer tab)
-Plan: 1 of 2 in current phase -- Complete
-Status: In Progress
-Last activity: 2026-03-19 - Completed 05.6-01 (JSONL logger module with rotation, watchdog/notify instrumentation)
+Plan: 2 of 2 in current phase -- Complete
+Status: Phase Complete
+Last activity: 2026-03-19 - Completed 05.6-02 (Logs tab UI, AJAX endpoint, filters, polling, Settings logging section)
 
-Progress: [█████████░] 92%
+Progress: [██████████] 96%
 
 ## Performance Metrics
 
@@ -75,6 +75,7 @@ Progress: [█████████░] 92%
 | Phase 05.5 P01 | 1min | 1 tasks | 1 files |
 | Phase 06 P01 | 1min | 2 tasks | 5 files |
 | Phase 05.6 P01 | 3min | 2 tasks | 4 files |
+| Phase 05.6 P02 | 5min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -133,6 +134,8 @@ Recent decisions affecting current work:
 - [Phase 05.6]: Logger initialized at module level with defaults, re-initialized after config read for lock-skip logging
 - [Phase 05.6]: JSONL format with ts/sev/src/msg fields for machine-parseable log entries
 - [Phase 05.6]: Existing console.log/console.error calls preserved for manual debugging alongside structured logging
+- [Phase 05.6]: Logs tab is navbar index 4 (zero-based tab index 3); log polling at 10s, device polling at 30s, mutually exclusive
+- [Phase 05.6]: Server-side JSONL filtering with 5000-entry hard cap; config saves emit log entries via PHP file_put_contents
 
 ### Pending Todos
 
@@ -160,6 +163,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T15:40:20Z
-Stopped at: Completed 05.6-01-PLAN.md
-Resume file: .planning/phases/05.6-create-log-viewer-tab/05.6-02-PLAN.md
+Last session: 2026-03-19T15:48:32.610Z
+Stopped at: Completed 05.6-02-PLAN.md
+Resume file: None
