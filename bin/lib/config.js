@@ -25,6 +25,10 @@ const DEFAULTS = {
     smtp_to: '',
     heartbeat_enabled: '0',
   },
+  LOGGING: {
+    log_max_size: '1024',   // KB
+    log_max_files: '5',
+  },
   EXCLUSIONS: {
     devices: '',
   },
@@ -34,6 +38,7 @@ const NUMERIC_FIELDS = {
   THRESHOLDS: ['offline_hours', 'battery_pct'],
   CRON: ['interval_minutes'],
   NOTIFICATIONS: ['smtp_port'],
+  LOGGING: ['log_max_size', 'log_max_files'],
 };
 
 const BOOLEAN_FIELDS = {
