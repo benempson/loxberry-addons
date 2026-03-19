@@ -706,6 +706,7 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
             <li><a href="#tab-settings" <?php echo $tab === 'settings' ? 'class="ui-btn-active"' : ''; ?>><?php echo htmlspecialchars($L['NAV.SETTINGS']); ?></a></li>
             <li><a href="#tab-status" <?php echo $tab === 'status' ? 'class="ui-btn-active"' : ''; ?>><?php echo htmlspecialchars($L['NAV.STATUS']); ?></a></li>
             <li><a href="#tab-blinds" <?php echo $tab === 'blinds' ? 'class="ui-btn-active"' : ''; ?>><?php echo htmlspecialchars($L['NAV.BLINDS']); ?></a></li>
+            <li><a href="#tab-logs" <?php echo $tab === 'logs' ? 'class="ui-btn-active"' : ''; ?>><?php echo htmlspecialchars($L['NAV.LOGS']); ?></a></li>
         </ul>
     </div>
 
@@ -847,6 +848,29 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
                            value="<?php echo htmlspecialchars($config['NOTIFICATIONS']['smtp_to']); ?>"
                            placeholder="admin@example.com">
                 </div>
+            </div>
+
+            <!-- Logging Section -->
+            <h3><?php echo htmlspecialchars($L['SETTINGS.SECTION_LOGGING']); ?></h3>
+            <div data-role="fieldcontain">
+                <label for="log_max_size"><?php echo htmlspecialchars($L['SETTINGS.LOG_MAX_SIZE']); ?></label>
+                <?php $current_log_size = intval($config['LOGGING']['log_max_size']); ?>
+                <select name="log_max_size" id="log_max_size">
+                    <option value="512" <?php echo $current_log_size === 512 ? 'selected' : ''; ?>>512 KB</option>
+                    <option value="1024" <?php echo $current_log_size === 1024 ? 'selected' : ''; ?>>1 MB</option>
+                    <option value="2048" <?php echo $current_log_size === 2048 ? 'selected' : ''; ?>>2 MB</option>
+                </select>
+                <p class="ui-body-d" style="font-size:0.85em;margin-top:2px;"><?php echo htmlspecialchars($L['SETTINGS.LOG_MAX_SIZE_HELP']); ?></p>
+            </div>
+            <div data-role="fieldcontain">
+                <label for="log_max_files"><?php echo htmlspecialchars($L['SETTINGS.LOG_MAX_FILES']); ?></label>
+                <?php $current_log_files = intval($config['LOGGING']['log_max_files']); ?>
+                <select name="log_max_files" id="log_max_files">
+                    <option value="3" <?php echo $current_log_files === 3 ? 'selected' : ''; ?>>3 files</option>
+                    <option value="5" <?php echo $current_log_files === 5 ? 'selected' : ''; ?>>5 files</option>
+                    <option value="10" <?php echo $current_log_files === 10 ? 'selected' : ''; ?>>10 files</option>
+                </select>
+                <p class="ui-body-d" style="font-size:0.85em;margin-top:2px;"><?php echo htmlspecialchars($L['SETTINGS.LOG_MAX_FILES_HELP']); ?></p>
             </div>
 
             <!-- Test buttons -->
@@ -1020,12 +1044,92 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
         </table>
     </div>
 
+    <!-- ============================================================ -->
+    <!-- LOGS TAB                                                      -->
+    <!-- ============================================================ -->
+    <div id="tab-logs">
+        <!-- Filter controls row -->
+        <div style="display:flex;align-items:center;gap:16px;margin:16px 0;flex-wrap:wrap;">
+            <label for="log-volume" style="font-size:0.9em;margin:0;"><?php echo htmlspecialchars($L['LOGS.FILTER_VOLUME']); ?></label>
+            <select id="log-volume" data-mini="true" style="width:auto;">
+                <option value="100" selected>100 Lines</option>
+                <option value="200">200 Lines</option>
+                <option value="300">300 Lines</option>
+                <option value="1h">Last 1 Hour</option>
+                <option value="2h">Last 2 Hours</option>
+                <option value="4h">Last 4 Hours</option>
+                <option value="8h">Last 8 Hours</option>
+                <option value="24h">Last 24 Hours</option>
+                <option value="48h">Last 48 Hours</option>
+                <option value="96h">Last 96 Hours</option>
+                <option value="all">All Logs</option>
+            </select>
+            <label for="log-severity" style="font-size:0.9em;margin:0;"><?php echo htmlspecialchars($L['LOGS.FILTER_SEVERITY']); ?></label>
+            <select id="log-severity" data-mini="true" style="width:auto;">
+                <option value="all" selected>All</option>
+                <option value="debug">Debug</option>
+                <option value="info">Info</option>
+                <option value="warning">Warning</option>
+                <option value="error">Error</option>
+            </select>
+            <input type="search" id="log-search" placeholder="<?php echo htmlspecialchars($L['LOGS.SEARCH_PLACEHOLDER']); ?>"
+                   style="flex:1;min-width:200px;padding:8px;box-sizing:border-box;" data-mini="true">
+        </div>
+
+        <!-- Entry count and data refreshed row -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:4px 0;">
+            <span id="log-entry-count" style="font-size:0.85em;color:#666;"></span>
+            <span id="log-refreshed" style="font-size:0.85em;color:#666;"></span>
+        </div>
+
+        <!-- Error notice (hidden by default) -->
+        <div id="log-error" style="font-size:0.85em;color:#f44336;margin:4px 0;display:none;">
+            <?php echo htmlspecialchars($L['LOGS.ERROR']); ?>
+        </div>
+
+        <!-- Empty state (shown when no logs exist) -->
+        <div id="log-empty" style="text-align:center;padding:40px 16px;display:none;">
+            <p style="font-weight:bold;margin:0;"><?php echo htmlspecialchars($L['LOGS.EMPTY_HEADING']); ?></p>
+            <p style="font-size:0.85em;color:#666;margin:8px 0 0 0;"><?php echo htmlspecialchars($L['LOGS.EMPTY_BODY']); ?></p>
+        </div>
+
+        <!-- Log table -->
+        <table id="log-table" style="width:100%;border-collapse:collapse;margin-top:8px;display:none;">
+            <thead>
+                <tr style="background:#f5f5f5;">
+                    <th style="padding:8px;text-align:left;">Timestamp</th>
+                    <th style="padding:8px;text-align:left;width:80px;">Severity</th>
+                    <th style="padding:8px;text-align:left;width:80px;">Source</th>
+                    <th style="padding:8px;text-align:left;">Message</th>
+                </tr>
+            </thead>
+            <tbody id="log-tbody"></tbody>
+        </table>
+    </div>
+
 </div>
 
 <!-- Search input padding fix for magnifying glass icon -->
 <style>
 #device-search {
     padding-left: 2.2em !important;
+}
+@keyframes log-highlight {
+    from { background-color: rgba(255, 235, 59, 0.4); }
+    to { background-color: transparent; }
+}
+.log-new { animation: log-highlight 2.5s ease-out forwards; }
+.log-msg-cell {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 400px;
+    cursor: pointer;
+}
+.log-msg-cell.expanded {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-width: none;
 }
 </style>
 
@@ -1267,7 +1371,7 @@ function startPolling() {
         // Only poll if status or blinds tab is active (not settings)
         try {
             var activeTab = jQuery('[data-role="tabs"]').tabs('option', 'active');
-            if (activeTab === 0) return; // Settings tab -- skip
+            if (activeTab === 0 || activeTab === 3) return; // Settings or Logs tab -- skip
         } catch(e) {}
         jQuery.post('index.php', { action: 'get_status_data' }, function(data) {
             updateStatusTable(data);
@@ -1285,6 +1389,12 @@ function stopPolling() {
 if (typeof jQuery !== 'undefined') {
     jQuery(document).on('pagecreate', function() {
         startPolling();
+        // If logs tab is active on page load, start log polling instead
+        var initialTab = <?php echo $tab === 'logs' ? '3' : ($tab === 'blinds' ? '2' : ($tab === 'status' ? '1' : '0')); ?>;
+        if (initialTab === 3) {
+            stopPolling();
+            startLogPolling();
+        }
     });
 }
 
@@ -1374,6 +1484,191 @@ function reapplySort(table) {
         tbody.appendChild(rows[i]);
     }
 }
+
+// ------------------------------------------------------------------
+// Log tab: polling, rendering, filters
+// ------------------------------------------------------------------
+
+var logPollTimer = null;
+var LOG_POLL_INTERVAL = 10000;
+var lastNewestTs = null;
+
+function sevBadgeColor(sev) {
+    sev = (sev || '').toLowerCase();
+    if (sev === 'error') return '#f44336';
+    if (sev === 'warning') return '#FF9800';
+    if (sev === 'info') return '#4CAF50';
+    return '#9E9E9E'; // debug
+}
+
+function sevRowTint(sev) {
+    sev = (sev || '').toLowerCase();
+    if (sev === 'error') return 'rgba(244, 67, 54, 0.06)';
+    if (sev === 'warning') return 'rgba(255, 152, 0, 0.06)';
+    if (sev === 'info') return 'rgba(76, 175, 80, 0.06)';
+    return 'rgba(158, 158, 158, 0.06)'; // debug
+}
+
+function formatLogTimestamp(isoStr) {
+    try {
+        var d = new Date(isoStr);
+        return d.getFullYear() + '-' +
+            ('0' + (d.getMonth()+1)).slice(-2) + '-' +
+            ('0' + d.getDate()).slice(-2) + ' ' +
+            ('0' + d.getHours()).slice(-2) + ':' +
+            ('0' + d.getMinutes()).slice(-2) + ':' +
+            ('0' + d.getSeconds()).slice(-2);
+    } catch(e) { return isoStr; }
+}
+
+function renderLogTable(data) {
+    var table = document.getElementById('log-table');
+    var tbody = document.getElementById('log-tbody');
+    var empty = document.getElementById('log-empty');
+    var countEl = document.getElementById('log-entry-count');
+    var errorEl = document.getElementById('log-error');
+
+    errorEl.style.display = 'none';
+
+    if (!data.entries || data.entries.length === 0) {
+        table.style.display = 'none';
+        // Check if this is a filtered empty or truly no logs
+        var vol = document.getElementById('log-volume');
+        var sev = document.getElementById('log-severity');
+        var search = document.getElementById('log-search');
+        var hasFilters = (vol && vol.value !== '100') || (sev && sev.value !== 'all') || (search && search.value.length >= 2);
+        if (hasFilters) {
+            empty.style.display = 'block';
+            empty.querySelector('p:first-child').textContent = '<?php echo addslashes($L['LOGS.EMPTY_FILTERED']); ?>';
+            empty.querySelector('p:last-child').style.display = 'none';
+        } else {
+            empty.style.display = 'block';
+            empty.querySelector('p:first-child').textContent = '<?php echo addslashes($L['LOGS.EMPTY_HEADING']); ?>';
+            var sub = empty.querySelector('p:last-child');
+            if (sub) { sub.style.display = ''; sub.textContent = '<?php echo addslashes($L['LOGS.EMPTY_BODY']); ?>'; }
+        }
+        if (countEl) countEl.textContent = '';
+        return;
+    }
+
+    empty.style.display = 'none';
+    table.style.display = '';
+
+    // Determine new entries for highlight
+    var prevNewest = lastNewestTs;
+    var currentNewest = data.entries.length > 0 ? data.entries[0].ts : null;
+
+    var html = '';
+    for (var i = 0; i < data.entries.length; i++) {
+        var e = data.entries[i];
+        var isNew = prevNewest && e.ts > prevNewest;
+        var rowClass = isNew ? ' class="log-new"' : '';
+        var tint = sevRowTint(e.sev);
+        var bg = sevBadgeColor(e.sev);
+        html += '<tr style="border-bottom:1px solid #ddd;background:' + tint + ';"' + rowClass + '>';
+        html += '<td style="padding:8px;white-space:nowrap;">' + formatLogTimestamp(e.ts) + '</td>';
+        html += '<td style="padding:8px;"><span style="background:' + bg + ';color:#fff;padding:4px 8px;border-radius:4px;font-size:0.85em;">' + escapeAttr(e.sev) + '</span></td>';
+        html += '<td style="padding:8px;">' + escapeAttr(e.src || '') + '</td>';
+        html += '<td style="padding:8px;" class="log-msg-cell">' + escapeAttr(e.msg || '') + '</td>';
+        html += '</tr>';
+    }
+    tbody.innerHTML = html;
+
+    if (currentNewest) lastNewestTs = currentNewest;
+
+    // Entry count
+    if (countEl) {
+        if (data.truncated) {
+            countEl.textContent = '<?php echo addslashes($L['LOGS.TRUNCATED']); ?>';
+        } else if (data.total > data.entries.length) {
+            countEl.textContent = '<?php echo addslashes($L['LOGS.ENTRY_COUNT_OF']); ?>'.replace('%s', data.entries.length).replace('%s', data.total);
+        } else {
+            countEl.textContent = '<?php echo addslashes($L['LOGS.ENTRY_COUNT']); ?>'.replace('%s', data.entries.length);
+        }
+    }
+
+    // Data refreshed timestamp
+    var refreshEl = document.getElementById('log-refreshed');
+    if (refreshEl) {
+        var now = new Date();
+        var ts = now.getFullYear() + '-' + ('0'+(now.getMonth()+1)).slice(-2) + '-' + ('0'+now.getDate()).slice(-2) + ' ' + ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2) + ':' + ('0'+now.getSeconds()).slice(-2);
+        refreshEl.textContent = '<?php echo addslashes($L['STATUS.DATA_REFRESHED']); ?>' + ts;
+    }
+}
+
+function fetchLogs() {
+    var vol = document.getElementById('log-volume');
+    var sev = document.getElementById('log-severity');
+    var search = document.getElementById('log-search');
+    var params = {
+        action: 'get_log_data',
+        volume: vol ? vol.value : '100',
+        severity: sev ? sev.value : 'all',
+        search: search ? search.value : ''
+    };
+    jQuery.post('index.php', params, function(data) {
+        renderLogTable(data);
+    }, 'json').fail(function() {
+        var errorEl = document.getElementById('log-error');
+        if (errorEl) errorEl.style.display = '';
+    });
+}
+
+function startLogPolling() {
+    if (logPollTimer) return;
+    fetchLogs(); // Initial load
+    logPollTimer = setInterval(function() {
+        if (document.hidden) return;
+        try {
+            var activeTab = jQuery('[data-role="tabs"]').tabs('option', 'active');
+            if (activeTab !== 3) return; // Only poll on Logs tab
+        } catch(e) {}
+        fetchLogs();
+    }, LOG_POLL_INTERVAL);
+}
+
+function stopLogPolling() {
+    if (logPollTimer) { clearInterval(logPollTimer); logPollTimer = null; }
+}
+
+// Wire filter controls
+if (typeof jQuery !== 'undefined') {
+    jQuery(document).on('change', '#log-volume, #log-severity', function() {
+        fetchLogs();
+    });
+    var logSearchTimer = null;
+    jQuery(document).on('input', '#log-search', function() {
+        if (logSearchTimer) clearTimeout(logSearchTimer);
+        var val = this.value;
+        logSearchTimer = setTimeout(function() {
+            if (val.length >= 2 || val.length === 0) fetchLogs();
+        }, 350);
+    });
+    jQuery(document).on('search', '#log-search', function() {
+        if (logSearchTimer) clearTimeout(logSearchTimer);
+        fetchLogs();
+    });
+}
+
+// Message cell click-to-expand
+jQuery(document).on('click', '.log-msg-cell', function() {
+    jQuery(this).toggleClass('expanded');
+});
+
+// Tab change: manage polling
+jQuery(document).on('tabsactivate', '[data-role="tabs"]', function(event, ui) {
+    var newIndex = jQuery('[data-role="tabs"]').tabs('option', 'active');
+    if (newIndex === 3) {
+        // Entering Logs tab
+        stopPolling();      // Stop device polling
+        startLogPolling();  // Start log polling
+    } else {
+        stopLogPolling();   // Stop log polling
+        if (newIndex === 1 || newIndex === 2) {
+            startPolling(); // Restart device polling for Status/Blinds
+        }
+    }
+});
 
 // Password eye-toggle
 function togglePassword(fieldId) {
