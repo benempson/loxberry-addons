@@ -187,7 +187,7 @@ function update_cron($interval_minutes) {
     $plugin_name = 'zigbee_watchdog';
     $cron_expr = interval_to_cron($interval_minutes);
     $cron_line = "$cron_expr loxberry /usr/bin/node " . LBPBINDIR . "/watchdog.js > /dev/null 2>&1";
-    $tmp_file = '/tmp/' . $plugin_name . '_cron';
+    $tmp_file = LBPDATADIR . '/' . $plugin_name . '_cron';
     file_put_contents($tmp_file, $cron_line . "\n");
     exec('sudo ' . LBHOMEDIR . '/sbin/installcrontab.sh ' . escapeshellarg($plugin_name) . ' ' . escapeshellarg($tmp_file) . ' 2>&1', $output, $retval);
     @unlink($tmp_file);
