@@ -1,6 +1,6 @@
 {
   "name": "zigbee-watchdog",
-  "version": "0.7.10",
+  "version": "0.7.11",
   "private": true,
   "dependencies": {
     "ini": "^5.0.0",
