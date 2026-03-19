@@ -122,6 +122,17 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 5. Plugin Packaging and Release | 0/2 | Planning complete | - |
 | 6. Auto-Update Mechanism | 0/1 | Complete    | 2026-03-17 |
 
+### Phase 05.6: Create log viewer tab (INSERTED)
+
+**Goal:** Add structured logging to the watchdog plugin and a Logs tab to the web UI with filtered display, auto-polling, severity badges, and configurable log retention settings.
+**Requirements**: LOG-01, LOG-02, LOG-03, LOG-04, LOG-05, LOG-06
+**Depends on:** Phase 5
+**Plans:** 2 plans
+
+Plans:
+- [ ] 05.6-01-PLAN.md — Node.js logger module with rotation, config defaults, watchdog/notify instrumentation
+- [ ] 05.6-02-PLAN.md — PHP AJAX endpoint, Logs tab UI with filters and polling, Settings logging section, language strings
+
 ### Phase 6: Auto-Update Mechanism
 **Goal**: Plugin can update itself automatically from GitHub releases without requiring manual packaging and installation
 **Depends on**: Phase 5
