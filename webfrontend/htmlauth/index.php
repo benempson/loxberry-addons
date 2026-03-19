@@ -188,20 +188,23 @@ function update_cron($interval_minutes) {
     $cron_expr = interval_to_cron($interval_minutes);
     $cron_line = "$cron_expr loxberry /usr/bin/node " . LBPBINDIR . "/watchdog.js > /dev/null 2>&1";
     $tmp_file = LBPDATADIR . '/' . $plugin_name . '_cron';
-    $wrote = file_put_contents($tmp_file, $cron_line . "\n");
-    $file_exists = file_exists($tmp_file);
+    file_put_contents($tmp_file, $cron_line . "\n");
+    // Ensure destination cron file exists (installcrontab.sh requires it)
+    $cron_dest = LBHOMEDIR . '/system/cron/cron.d/' . $plugin_name;
+    if (!file_exists($cron_dest)) {
+        exec('sudo touch ' . escapeshellarg($cron_dest) . ' 2>&1');
+    }
     $cmd = 'sudo ' . LBHOMEDIR . '/sbin/installcrontab.sh ' . escapeshellarg($plugin_name) . ' ' . escapeshellarg($tmp_file) . ' 2>&1';
     exec($cmd, $output, $retval);
     @unlink($tmp_file);
-    // Log cron installation result with full diagnostics
-    $diag = 'tmp_file=' . $tmp_file . ' wrote=' . var_export($wrote, true) . ' exists=' . var_export($file_exists, true) . ' cmd=' . $cmd;
+    // Log cron installation result
     $log_entry = json_encode(array(
         'ts' => gmdate('Y-m-d\TH:i:s.000\Z'),
         'sev' => $retval === 0 ? 'Info' : 'Error',
         'src' => 'cron',
         'msg' => $retval === 0
             ? 'Cron job installed: ' . $cron_expr
-            : 'Cron install failed (exit ' . $retval . '): ' . implode(' ', $output) . ' | ' . $diag,
+            : 'Cron install failed (exit ' . $retval . '): ' . implode(' ', $output),
     )) . "\n";
     @file_put_contents(LBPDATADIR . '/watchdog.log', $log_entry, FILE_APPEND | LOCK_EX);
     return $retval === 0;

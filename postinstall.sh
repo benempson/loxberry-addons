@@ -98,6 +98,11 @@ fi
 
 CRON_FILE="$PDATA/${ARGV3}_cron"
 echo "$CRON_EXPR loxberry /usr/bin/node $PBIN/watchdog.js > /dev/null 2>&1" > "$CRON_FILE"
+# Ensure destination cron file exists (installcrontab.sh requires it)
+CRON_DEST="$LBHOMEDIR/system/cron/cron.d/$ARGV3"
+if [ ! -e "$CRON_DEST" ]; then
+    sudo touch "$CRON_DEST"
+fi
 sudo $LBHOMEDIR/sbin/installcrontab.sh "$ARGV3" "$CRON_FILE" 2>&1
 rm -f "$CRON_FILE"
 
