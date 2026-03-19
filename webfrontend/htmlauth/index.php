@@ -528,7 +528,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $error = implode(' ', $errors);
         } else {
             if (write_config($cfgfile, $new_config)) {
-                update_cron(intval($new_config['CRON']['interval_minutes']));
+                $cron_ok = update_cron(intval($new_config['CRON']['interval_minutes']));
                 // Log config save event
                 $log_entry = json_encode(array(
                     'ts' => gmdate('Y-m-d\TH:i:s.000\Z'),
@@ -537,7 +537,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     'msg' => 'Settings saved via web UI',
                 )) . "\n";
                 @file_put_contents(LBPDATADIR . '/watchdog.log', $log_entry, FILE_APPEND | LOCK_EX);
-                header('Location: index.php?msg=saved');
+                $redirect = 'index.php?msg=saved';
+                if (!$cron_ok) {
+                    $redirect .= '&cron_error=1';
+                }
+                header('Location: ' . $redirect);
                 exit;
             } else {
                 $error = $L['MESSAGES.SAVE_ERROR'] . 'Could not write config file.';
@@ -579,6 +583,13 @@ if (!empty($z2m_data_path) && file_exists($z2m_data_path . '/state.json')) {
     }
     $z2m_status_text = $z2m_device_count . ' devices, state.json ' . $age_str;
 }
+
+// ------------------------------------------------------------------
+// Check cron job status
+// ------------------------------------------------------------------
+$cron_file = LBHOMEDIR . '/system/cron/cron.d/zigbee_watchdog';
+$cron_installed = file_exists($cron_file);
+$cron_error_param = isset($_GET['cron_error']) && $_GET['cron_error'] === '1';
 
 // ------------------------------------------------------------------
 // Exclusion list from INI
@@ -699,14 +710,14 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
 </div>
 <?php endif; ?>
 
-<!-- Tab content container -->
+<!-- Tab content container (navigation is handled by Loxberry SDK $navbar above) -->
 <div data-role="tabs">
-    <div data-role="navbar">
+    <div data-role="navbar" style="display:none;">
         <ul>
-            <li><a href="#tab-settings" <?php echo $tab === 'settings' ? 'class="ui-btn-active"' : ''; ?>><?php echo htmlspecialchars($L['NAV.SETTINGS']); ?></a></li>
-            <li><a href="#tab-status" <?php echo $tab === 'status' ? 'class="ui-btn-active"' : ''; ?>><?php echo htmlspecialchars($L['NAV.STATUS']); ?></a></li>
-            <li><a href="#tab-blinds" <?php echo $tab === 'blinds' ? 'class="ui-btn-active"' : ''; ?>><?php echo htmlspecialchars($L['NAV.BLINDS']); ?></a></li>
-            <li><a href="#tab-logs" <?php echo $tab === 'logs' ? 'class="ui-btn-active"' : ''; ?>><?php echo htmlspecialchars($L['NAV.LOGS']); ?></a></li>
+            <li><a href="#tab-settings">Settings</a></li>
+            <li><a href="#tab-status">Status</a></li>
+            <li><a href="#tab-blinds">Blinds</a></li>
+            <li><a href="#tab-logs">Logs</a></li>
         </ul>
     </div>
 
@@ -716,6 +727,12 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
     <div id="tab-settings">
         <form method="post" action="index.php" data-ajax="false">
             <input type="hidden" name="action" id="form-action" value="save_settings">
+
+<?php if (!$cron_installed || $cron_error_param): ?>
+            <div style="background:#FF9800;color:#fff;padding:10px 15px;margin:10px 0;border-radius:4px;">
+                <strong>Cron job not installed.</strong> The scheduled watchdog run is not active. Try saving settings again. If this persists, check the Logs tab for errors or reinstall the plugin.
+            </div>
+<?php endif; ?>
 
             <!-- Z2M Section -->
             <h3><?php echo htmlspecialchars($L['SETTINGS.SECTION_Z2M']); ?></h3>
@@ -1073,7 +1090,7 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
                 <option value="error">Error</option>
             </select>
             <input type="search" id="log-search" placeholder="<?php echo htmlspecialchars($L['LOGS.SEARCH_PLACEHOLDER']); ?>"
-                   style="flex:1;min-width:200px;padding:8px;box-sizing:border-box;" data-mini="true">
+                   style="flex:1;min-width:200px;padding:8px 8px 8px 28px;box-sizing:border-box;" data-mini="true">
         </div>
 
         <!-- Entry count and data refreshed row -->
