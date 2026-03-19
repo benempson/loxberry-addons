@@ -3,6 +3,7 @@
 const { sendLoxberryNotification } = require('./loxberry-notify');
 const { sendEmailNotification } = require('./email-notify');
 const { buildEmailBody, buildSubject, buildLoxberryMessage, buildHeartbeatBody } = require('./email-template');
+const logger = require('./logger');
 
 /**
  * Deliver pending notifications to enabled channels.
@@ -20,6 +21,7 @@ async function deliverNotifications(state, config) {
 
   // No transitions and no heartbeat -- stay silent
   if (pending.length === 0 && !n.heartbeat_enabled) {
+    logger.log('Debug', 'notify', 'No transitions to deliver');
     return { sent: false, reason: 'no-transitions' };
   }
 
@@ -39,8 +41,10 @@ async function deliverNotifications(state, config) {
       try {
         sendLoxberryNotification(heartbeat.text);
         results.loxberry.success = true;
+        logger.log('Info', 'notify', 'Heartbeat notification sent');
       } catch (err) {
         console.error('Loxberry heartbeat failed:', err.message);
+        logger.log('Error', 'notify', 'Loxberry heartbeat failed: ' + err.message);
       }
     }
 
@@ -49,8 +53,10 @@ async function deliverNotifications(state, config) {
       try {
         await sendEmailNotification(heartbeat.html, heartbeat.text, heartbeat.subject, config);
         results.email.success = true;
+        logger.log('Info', 'notify', 'Heartbeat notification sent');
       } catch (err) {
         console.error('Email heartbeat failed:', err.message);
+        logger.log('Error', 'notify', 'Email heartbeat failed: ' + err.message);
       }
     }
 
@@ -70,6 +76,7 @@ async function deliverNotifications(state, config) {
         results.loxberry.success = true;
       } catch (err) {
         console.error('Loxberry bridge notification failed:', err.message);
+        logger.log('Error', 'notify', 'Loxberry bridge notification failed: ' + err.message);
       }
     }
 
@@ -81,6 +88,7 @@ async function deliverNotifications(state, config) {
         results.email.success = true;
       } catch (err) {
         console.error('Email bridge notification failed:', err.message);
+        logger.log('Error', 'notify', 'Email bridge notification failed: ' + err.message);
       }
     }
   }
@@ -93,8 +101,10 @@ async function deliverNotifications(state, config) {
         const hasOffline = deviceTransitions.some(t => t.type === 'offline' && t.transition === 'alert');
         sendLoxberryNotification(msg, hasOffline ? 'err' : undefined);
         results.loxberry.success = true;
+        logger.log('Info', 'notify', 'Loxberry notification sent (' + pending.length + ' transitions)');
       } catch (err) {
         console.error('Loxberry notification failed:', err.message);
+        logger.log('Error', 'notify', 'Loxberry notification failed: ' + err.message);
       }
     }
 
@@ -104,8 +114,10 @@ async function deliverNotifications(state, config) {
         const subject = buildSubject(deviceTransitions);
         await sendEmailNotification(html, text, subject, config);
         results.email.success = true;
+        logger.log('Info', 'notify', 'Email notification sent (' + pending.length + ' transitions)');
       } catch (err) {
         console.error('Email notification failed:', err.message);
+        logger.log('Error', 'notify', 'Email notification failed: ' + err.message);
       }
     }
   }

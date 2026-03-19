@@ -15,6 +15,7 @@ const { readState, writeState, acquireLock } = require('./lib/state-store');
 const { evaluateDevices } = require('./lib/evaluator');
 const { checkBridgeState } = require('./lib/bridge-monitor');
 const { deliverNotifications } = require('./lib/notify');
+const logger = require('./lib/logger');
 
 // Paths -- overridable via env vars for dev/test
 const PLUGIN_NAME = 'zigbee_watchdog';
@@ -23,6 +24,10 @@ const CONFIG_PATH = process.env.WATCHDOG_CONFIG || path.join(BASE_DIR, 'config',
 const DATA_DIR = process.env.WATCHDOG_DATA_DIR || path.join(BASE_DIR, 'data', 'plugins', PLUGIN_NAME);
 const STATE_PATH = path.join(DATA_DIR, 'state.json');
 const LOCK_FILE = path.join(DATA_DIR, 'watchdog.lock');
+const LOG_PATH = path.join(DATA_DIR, 'watchdog.log');
+
+// Initialize logger with defaults (re-initialized with config values in main())
+logger.init(LOG_PATH);
 
 /**
  * Format evaluation result into a human-readable summary line.
@@ -113,6 +118,7 @@ async function main() {
   } catch (err) {
     if (err.code === 'ELOCKED') {
       console.log('Previous run still active, skipping');
+      logger.log('Info', 'watchdog', 'Previous run still active, skipping');
       process.exit(0);
     }
     throw err;
@@ -120,15 +126,23 @@ async function main() {
 
   try {
     const config = readConfig(CONFIG_PATH);
+    logger.init(LOG_PATH, {
+      maxSize: (config.LOGGING.log_max_size || 1024) * 1024,
+      maxFiles: config.LOGGING.log_max_files || 5,
+    });
+    logger.log('Info', 'watchdog', 'Watchdog run started');
+
     const state = readState(STATE_PATH);
     if (!state.pending_notifications) state.pending_notifications = [];
 
     // Resolve z2m data path: config takes priority, then auto-detect
     const z2mPath = config.Z2M.z2m_data_path || detectZ2mPath();
     if (!z2mPath) {
+      logger.log('Error', 'watchdog', 'zigbee2mqtt data path not found');
       throw new Error('zigbee2mqtt data path not found. Set z2m_data_path in config or ensure z2m is installed in a standard location.');
     }
 
+    logger.log('Debug', 'watchdog', 'Z2M data path: ' + z2mPath);
     const z2mState = readZ2mState(z2mPath);
     const databaseEntries = readZ2mDatabase(z2mPath);
     const devicesYaml = readZ2mDevices(z2mPath);
@@ -137,6 +151,7 @@ async function main() {
     const bridgeTransition = checkBridgeState(z2mPath, state);
 
     if (bridgeTransition) {
+      logger.log('Warning', 'watchdog', 'Bridge transition: ' + bridgeTransition.transition);
       state.pending_notifications.push(bridgeTransition);
     }
 
@@ -144,6 +159,7 @@ async function main() {
 
     if (bridgeTransition && bridgeTransition.transition === 'offline') {
       // Bridge offline: skip device evaluation to avoid false positives from stale data
+      logger.log('Warning', 'watchdog', 'Bridge offline, device evaluation skipped');
       evalSummary = 'Bridge offline, device evaluation skipped';
     } else {
       // Bridge online or recovered: run normal device evaluation
@@ -163,11 +179,13 @@ async function main() {
       await deliverNotifications(state, config);
     } catch (err) {
       console.error('Notification delivery failed:', err.message);
+      logger.log('Error', 'notify', 'Notification delivery failed: ' + err.message);
     }
 
     // Second write: persist cleared pending_notifications
     await writeState(STATE_PATH, state);
 
+    logger.log('Info', 'watchdog', 'Run complete. ' + evalSummary);
     console.log(`Run complete. ${evalSummary}`);
   } finally {
     if (release) await release();
@@ -183,6 +201,7 @@ if (require.main === module) {
     .then(() => process.exit(0))
     .catch((err) => {
       console.error('FATAL:', err.message);
+      logger.log('Error', 'watchdog', 'FATAL: ' + err.message);
       process.exit(1);
     });
 }
