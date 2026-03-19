@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 5.6 UI-SPEC approved
-last_updated: "2026-03-19T13:36:12.318Z"
+last_updated: "2026-03-19T15:40:56.765Z"
 last_activity: 2026-03-17 - Completed 06-01 (Loxberry auto-update via release.cfg, GitHub Actions, enhanced release.js)
 progress:
   total_phases: 12
   completed_phases: 10
-  total_plans: 24
-  completed_plans: 23
+  total_plans: 26
+  completed_plans: 24
   percent: 96
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Proactively alert when Zigbee devices are offline or low on battery so they can be fixed before the user notices missing functionality around the house.
-**Current focus:** Phase 6: Auto-update mechanism
+**Current focus:** Phase 5.6: Create log viewer tab
 
 ## Current Position
 
-Phase: 6 of 10 (Auto-update mechanism)
-Plan: 1 of 1 in current phase -- Complete
+Phase: 5.6 (Create log viewer tab)
+Plan: 1 of 2 in current phase -- Complete
 Status: In Progress
-Last activity: 2026-03-17 - Completed 06-01 (Loxberry auto-update via release.cfg, GitHub Actions, enhanced release.js)
+Last activity: 2026-03-19 - Completed 05.6-01 (JSONL logger module with rotation, watchdog/notify instrumentation)
 
-Progress: [██████████] 96%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -74,6 +74,7 @@ Progress: [██████████] 96%
 | Phase 05.4 P02 | 2min | 2 tasks | 1 files |
 | Phase 05.5 P01 | 1min | 1 tasks | 1 files |
 | Phase 06 P01 | 1min | 2 tasks | 5 files |
+| Phase 05.6 P01 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -129,6 +130,9 @@ Recent decisions affecting current work:
 - [Feature]: "Data refreshed" timestamp shown above Device Status and Blinds tables, updated on each AJAX poll
 - [Phase 06]: GitHub Actions workflow updates release.cfg and pushes to main after each release
 - [Phase 06]: release.js also updates release.cfg locally for version consistency during manual bumps
+- [Phase 05.6]: Logger initialized at module level with defaults, re-initialized after config read for lock-skip logging
+- [Phase 05.6]: JSONL format with ts/sev/src/msg fields for machine-parseable log entries
+- [Phase 05.6]: Existing console.log/console.error calls preserved for manual debugging alongside structured logging
 
 ### Pending Todos
 
@@ -156,6 +160,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T13:36:12.315Z
-Stopped at: Phase 5.6 UI-SPEC approved
-Resume file: .planning/phases/05.6-create-log-viewer-tab/05.6-UI-SPEC.md
+Last session: 2026-03-19T15:40:20Z
+Stopped at: Completed 05.6-01-PLAN.md
+Resume file: .planning/phases/05.6-create-log-viewer-tab/05.6-02-PLAN.md
