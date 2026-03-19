@@ -41,6 +41,10 @@ $defaults = array(
         'smtp_to'           => '',
         'heartbeat_enabled' => '0',
     ),
+    'LOGGING' => array(
+        'log_max_size'  => '1024',
+        'log_max_files' => '5',
+    ),
     'EXCLUSIONS' => array(
         'devices' => '',
     ),
@@ -236,6 +240,10 @@ function collect_form_config($defaults, $cfgfile) {
             'heartbeat_enabled' => ($_POST['heartbeat'] ?? '0') === '1' ? '1' : '0',
         ),
     );
+    $new_config['LOGGING'] = array(
+        'log_max_size'  => trim($_POST['log_max_size'] ?? '1024'),
+        'log_max_files' => trim($_POST['log_max_files'] ?? '5'),
+    );
     // Preserve EXCLUSIONS from existing config
     $current = read_config($cfgfile, $defaults);
     $new_config['EXCLUSIONS'] = $current['EXCLUSIONS'];
@@ -400,6 +408,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit;
     }
 
+    if ($_POST['action'] === 'get_log_data') {
+        header('Content-Type: application/json');
+        $log_base = LBPDATADIR . '/watchdog.log';
+        $volume = isset($_POST['volume']) ? $_POST['volume'] : '100';
+        $severity = strtolower(isset($_POST['severity']) ? $_POST['severity'] : 'all');
+        $search = isset($_POST['search']) ? $_POST['search'] : '';
+
+        // Collect all log entries from all files (current file first, then rotated)
+        $all_entries = array();
+        $files = array($log_base);
+        for ($i = 1; $i <= 10; $i++) {
+            if (file_exists($log_base . '.' . $i)) $files[] = $log_base . '.' . $i;
+        }
+        foreach ($files as $f) {
+            if (!file_exists($f)) continue;
+            $lines = file($f, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            if (!$lines) continue;
+            foreach ($lines as $line) {
+                $entry = @json_decode($line, true);
+                if (!$entry || !isset($entry['ts'])) continue;
+                $all_entries[] = $entry;
+            }
+        }
+
+        // Sort newest first
+        usort($all_entries, function($a, $b) {
+            return strcmp($b['ts'], $a['ts']);
+        });
+
+        // Apply severity filter
+        if ($severity !== 'all') {
+            $all_entries = array_values(array_filter($all_entries, function($e) use ($severity) {
+                return strtolower($e['sev']) === $severity;
+            }));
+        }
+
+        // Apply text search filter
+        if ($search !== '') {
+            $search_lower = strtolower($search);
+            $all_entries = array_values(array_filter($all_entries, function($e) use ($search_lower) {
+                return strpos(strtolower($e['msg']), $search_lower) !== false;
+            }));
+        }
+
+        $total = count($all_entries);
+
+        // Apply volume filter
+        if (preg_match('/^(\d+)$/', $volume, $m)) {
+            // Line count mode
+            $all_entries = array_slice($all_entries, 0, intval($m[1]));
+        } elseif (preg_match('/^(\d+)h$/', $volume, $m)) {
+            // Time-based mode
+            $cutoff = date('c', time() - intval($m[1]) * 3600);
+            $all_entries = array_values(array_filter($all_entries, function($e) use ($cutoff) {
+                return $e['ts'] >= $cutoff;
+            }));
+        }
+        // "all" = no volume filter (but cap at 5000)
+        $truncated = false;
+        if (count($all_entries) > 5000) {
+            $all_entries = array_slice($all_entries, 0, 5000);
+            $truncated = true;
+        }
+
+        echo json_encode(array('entries' => $all_entries, 'total' => $total, 'truncated' => $truncated));
+        exit;
+    }
+
     if ($_POST['action'] === 'verify_z2m') {
         set_time_limit(45);
         // Save current form settings so verify script reads latest values
@@ -453,6 +529,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         } else {
             if (write_config($cfgfile, $new_config)) {
                 update_cron(intval($new_config['CRON']['interval_minutes']));
+                // Log config save event
+                $log_entry = json_encode(array(
+                    'ts' => gmdate('Y-m-d\TH:i:s.000\Z'),
+                    'sev' => 'Info',
+                    'src' => 'config',
+                    'msg' => 'Settings saved via web UI',
+                )) . "\n";
+                @file_put_contents(LBPDATADIR . '/watchdog.log', $log_entry, FILE_APPEND | LOCK_EX);
                 header('Location: index.php?msg=saved');
                 exit;
             } else {
@@ -590,6 +674,10 @@ if ($tab === 'status') $navbar[2]['active'] = true;
 $navbar[3]['Name'] = $L['NAV.BLINDS'];
 $navbar[3]['URL']  = 'index.php?tab=blinds';
 if ($tab === 'blinds') $navbar[3]['active'] = true;
+
+$navbar[4]['Name'] = $L['NAV.LOGS'];
+$navbar[4]['URL']  = 'index.php?tab=logs';
+if ($tab === 'logs') $navbar[4]['active'] = true;
 
 // ------------------------------------------------------------------
 // Header
@@ -1307,6 +1395,7 @@ function togglePassword(fieldId) {
 $tab_index = 0;
 if ($tab === 'status') $tab_index = 1;
 if ($tab === 'blinds') $tab_index = 2;
+if ($tab === 'logs') $tab_index = 3;
 if ($tab_index > 0):
 ?>
 if (typeof jQuery !== 'undefined') {
