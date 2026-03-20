@@ -186,45 +186,58 @@ function interval_to_cron($minutes) {
 function update_cron($interval_minutes) {
     $plugin_name = 'zigbee_watchdog';
     $cron_expr = interval_to_cron($interval_minutes);
-    $cron_line = "$cron_expr loxberry /usr/bin/node " . LBPBINDIR . "/watchdog.js > /dev/null 2>&1";
-    // Write cron content to temp file in plugin data dir (not /tmp — PrivateTmp)
-    $tmp_file = LBPDATADIR . '/' . $plugin_name . '_cron';
-    file_put_contents($tmp_file, $cron_line . "\n");
-    // installcrontab.sh requires the destination file to already exist.
-    // Create it if missing. Try direct write first (loxberry may own cron.d),
-    // then fall back to createskelfolders.pl which recreates plugin directories.
-    $cron_dest = LBHOMEDIR . '/system/cron/cron.d/' . $plugin_name;
-    if (!file_exists($cron_dest)) {
-        // Try direct write (works if loxberry owns cron.d dir)
-        @file_put_contents($cron_dest, $cron_line . "\n");
+    // User crontab line (no username field — user crontabs don't have one)
+    $cron_cmd = '/usr/bin/node ' . LBPBINDIR . '/watchdog.js > /dev/null 2>&1';
+    $cron_line = "$cron_expr $cron_cmd";
+    $marker = '# zigbee_watchdog';
+
+    // Strategy: edit the loxberry user's own crontab directly.
+    // This avoids installcrontab.sh which requires a root-owned destination file
+    // that PHP cannot create (sudo touch not in sudoers).
+
+    // 1. Read current crontab
+    exec('crontab -l 2>/dev/null', $current_lines, $rc);
+    if ($rc !== 0) {
+        $current_lines = array();
     }
-    if (!file_exists($cron_dest)) {
-        // Direct write failed — use createskelfolders.pl (in sudoers) to recreate
-        // plugin skeleton which includes the cron.d entry, then overwrite via installcrontab
-        exec('sudo ' . LBHOMEDIR . '/sbin/createskelfolders.pl 2>&1');
-        // If still missing, create a placeholder so installcrontab.sh can proceed
-        if (!file_exists($cron_dest)) {
-            @file_put_contents($cron_dest, "# placeholder\n");
-        }
+
+    // 2. Remove any existing watchdog entries (by marker or command path)
+    $filtered = array();
+    foreach ($current_lines as $line) {
+        if (strpos($line, 'watchdog.js') !== false) continue;
+        if ($line === $marker) continue;
+        $filtered[] = $line;
     }
-    $cmd = 'sudo ' . LBHOMEDIR . '/sbin/installcrontab.sh ' . escapeshellarg($plugin_name) . ' ' . escapeshellarg($tmp_file) . ' 2>&1';
-    $wrote = filesize($tmp_file);
-    $tmp_exists = file_exists($tmp_file);
-    $dest_exists_before = file_exists($cron_dest);
-    exec($cmd, $output, $retval);
+
+    // 3. Append new entry with marker comment
+    $filtered[] = $marker;
+    $filtered[] = $cron_line;
+
+    // 4. Write back via crontab command (use plugin data dir for temp file)
+    $tmp_file = LBPDATADIR . '/' . $plugin_name . '_crontab';
+    file_put_contents($tmp_file, implode("\n", $filtered) . "\n");
+    exec('crontab ' . escapeshellarg($tmp_file) . ' 2>&1', $output, $retval);
     @unlink($tmp_file);
-    // Log cron installation result with diagnostics
-    $diag = ' | tmp_file=' . $tmp_file . ' wrote=' . $wrote . ' tmp_exists=' . ($tmp_exists ? 'true' : 'false')
-           . ' dest_exists_before=' . ($dest_exists_before ? 'true' : 'false')
-           . ' dest_exists_after=' . (file_exists($cron_dest) ? 'true' : 'false')
-           . ' cmd=' . $cmd;
+
+    // 5. Also try installcrontab.sh for Loxberry's cron.d (best-effort)
+    $cron_d_line = "$cron_expr loxberry $cron_cmd";
+    $tmp_cron_d = LBPDATADIR . '/' . $plugin_name . '_cron';
+    file_put_contents($tmp_cron_d, $cron_d_line . "\n");
+    $cron_dest = LBHOMEDIR . '/system/cron/cron.d/' . $plugin_name;
+    if (file_exists($cron_dest)) {
+        exec('sudo ' . LBHOMEDIR . '/sbin/installcrontab.sh ' . escapeshellarg($plugin_name) . ' ' . escapeshellarg($tmp_cron_d) . ' 2>&1');
+    }
+    @unlink($tmp_cron_d);
+
+    // Log result
+    $method = $retval === 0 ? 'user crontab' : 'failed';
     $log_entry = json_encode(array(
         'ts' => gmdate('Y-m-d\TH:i:s.000\Z'),
         'sev' => $retval === 0 ? 'Info' : 'Error',
         'src' => 'cron',
         'msg' => $retval === 0
-            ? 'Cron job installed: ' . $cron_expr . $diag
-            : 'Cron install failed (exit ' . $retval . '): ' . implode(' ', $output) . $diag,
+            ? 'Cron job installed via ' . $method . ': ' . $cron_expr
+            : 'Cron install failed (exit ' . $retval . '): ' . implode(' ', $output),
     )) . "\n";
     @file_put_contents(LBPDATADIR . '/watchdog.log', $log_entry, FILE_APPEND | LOCK_EX);
     return $retval === 0;
@@ -624,7 +637,16 @@ if (!empty($z2m_data_path) && file_exists($z2m_data_path . '/state.json')) {
 // Check cron job status
 // ------------------------------------------------------------------
 $cron_file = LBHOMEDIR . '/system/cron/cron.d/zigbee_watchdog';
-$cron_installed = file_exists($cron_file);
+$cron_in_cron_d = file_exists($cron_file);
+// Also check user crontab for watchdog entry
+$cron_in_user = false;
+exec('crontab -l 2>/dev/null', $crontab_lines, $crontab_rc);
+if ($crontab_rc === 0) {
+    foreach ($crontab_lines as $cl) {
+        if (strpos($cl, 'watchdog.js') !== false) { $cron_in_user = true; break; }
+    }
+}
+$cron_installed = $cron_in_cron_d || $cron_in_user;
 $cron_error_param = isset($_GET['cron_error']) && $_GET['cron_error'] === '1';
 
 // ------------------------------------------------------------------
