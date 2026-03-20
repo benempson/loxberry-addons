@@ -187,12 +187,25 @@ function update_cron($interval_minutes) {
     $plugin_name = 'zigbee_watchdog';
     $cron_expr = interval_to_cron($interval_minutes);
     $cron_line = "$cron_expr loxberry /usr/bin/node " . LBPBINDIR . "/watchdog.js > /dev/null 2>&1";
+    // Write cron content to temp file in plugin data dir (not /tmp — PrivateTmp)
     $tmp_file = LBPDATADIR . '/' . $plugin_name . '_cron';
     file_put_contents($tmp_file, $cron_line . "\n");
-    // Ensure destination cron file exists (installcrontab.sh requires it)
+    // installcrontab.sh requires the destination file to already exist.
+    // Create it if missing. Try direct write first (loxberry may own cron.d),
+    // then fall back to createskelfolders.pl which recreates plugin directories.
     $cron_dest = LBHOMEDIR . '/system/cron/cron.d/' . $plugin_name;
     if (!file_exists($cron_dest)) {
-        exec('sudo touch ' . escapeshellarg($cron_dest) . ' 2>&1');
+        // Try direct write (works if loxberry owns cron.d dir)
+        @file_put_contents($cron_dest, $cron_line . "\n");
+    }
+    if (!file_exists($cron_dest)) {
+        // Direct write failed — use createskelfolders.pl (in sudoers) to recreate
+        // plugin skeleton which includes the cron.d entry, then overwrite via installcrontab
+        exec('sudo ' . LBHOMEDIR . '/sbin/createskelfolders.pl 2>&1');
+        // If still missing, create a placeholder so installcrontab.sh can proceed
+        if (!file_exists($cron_dest)) {
+            @file_put_contents($cron_dest, "# placeholder\n");
+        }
     }
     $cmd = 'sudo ' . LBHOMEDIR . '/sbin/installcrontab.sh ' . escapeshellarg($plugin_name) . ' ' . escapeshellarg($tmp_file) . ' 2>&1';
     exec($cmd, $output, $retval);
