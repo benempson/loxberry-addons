@@ -1147,6 +1147,7 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
                     <th style="padding:8px;text-align:left;width:80px;">Severity</th>
                     <th style="padding:8px;text-align:left;width:80px;">Source</th>
                     <th style="padding:8px;text-align:left;">Message</th>
+                    <th style="padding:8px;text-align:center;width:40px;"></th>
                 </tr>
             </thead>
             <tbody id="log-tbody"></tbody>
@@ -1170,12 +1171,23 @@ LBWeb::lbheader("Zigbee Watchdog", "https://github.com/", "");
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 400px;
-    cursor: pointer;
 }
 .log-msg-cell.expanded {
     white-space: pre-wrap;
     word-wrap: break-word;
     max-width: none;
+}
+.log-expand-btn {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 2px 6px;
+    cursor: pointer;
+    font-size: 0.85em;
+    color: #666;
+}
+.log-expand-btn:hover {
+    background: #f0f0f0;
 }
 </style>
 
@@ -1616,6 +1628,7 @@ function renderLogTable(data) {
         html += '<td style="padding:8px;"><span style="background:' + bg + ';color:#fff;padding:4px 8px;border-radius:4px;font-size:0.85em;">' + escapeAttr(e.sev) + '</span></td>';
         html += '<td style="padding:8px;">' + escapeAttr(e.src || '') + '</td>';
         html += '<td style="padding:8px;" class="log-msg-cell">' + escapeAttr(e.msg || '') + '</td>';
+        html += '<td style="padding:8px;text-align:center;"><button class="log-expand-btn" title="Expand/collapse">&#x25BC;</button></td>';
         html += '</tr>';
     }
     tbody.innerHTML = html;
@@ -1696,9 +1709,11 @@ if (typeof jQuery !== 'undefined') {
     });
 }
 
-// Message cell click-to-expand
-jQuery(document).on('click', '.log-msg-cell', function() {
-    jQuery(this).toggleClass('expanded');
+// Message expand/collapse via button
+jQuery(document).on('click', '.log-expand-btn', function() {
+    var msgCell = jQuery(this).closest('tr').find('.log-msg-cell');
+    msgCell.toggleClass('expanded');
+    jQuery(this).html(msgCell.hasClass('expanded') ? '&#x25B2;' : '&#x25BC;');
 });
 
 // Tab change: manage polling
