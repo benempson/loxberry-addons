@@ -208,16 +208,23 @@ function update_cron($interval_minutes) {
         }
     }
     $cmd = 'sudo ' . LBHOMEDIR . '/sbin/installcrontab.sh ' . escapeshellarg($plugin_name) . ' ' . escapeshellarg($tmp_file) . ' 2>&1';
+    $wrote = filesize($tmp_file);
+    $tmp_exists = file_exists($tmp_file);
+    $dest_exists_before = file_exists($cron_dest);
     exec($cmd, $output, $retval);
     @unlink($tmp_file);
-    // Log cron installation result
+    // Log cron installation result with diagnostics
+    $diag = ' | tmp_file=' . $tmp_file . ' wrote=' . $wrote . ' tmp_exists=' . ($tmp_exists ? 'true' : 'false')
+           . ' dest_exists_before=' . ($dest_exists_before ? 'true' : 'false')
+           . ' dest_exists_after=' . (file_exists($cron_dest) ? 'true' : 'false')
+           . ' cmd=' . $cmd;
     $log_entry = json_encode(array(
         'ts' => gmdate('Y-m-d\TH:i:s.000\Z'),
         'sev' => $retval === 0 ? 'Info' : 'Error',
         'src' => 'cron',
         'msg' => $retval === 0
-            ? 'Cron job installed: ' . $cron_expr
-            : 'Cron install failed (exit ' . $retval . '): ' . implode(' ', $output),
+            ? 'Cron job installed: ' . $cron_expr . $diag
+            : 'Cron install failed (exit ' . $retval . '): ' . implode(' ', $output) . $diag,
     )) . "\n";
     @file_put_contents(LBPDATADIR . '/watchdog.log', $log_entry, FILE_APPEND | LOCK_EX);
     return $retval === 0;
@@ -1612,6 +1619,16 @@ function renderLogTable(data) {
     empty.style.display = 'none';
     table.style.display = '';
 
+    // Save expanded state by timestamp before rebuild
+    var expandedTimestamps = {};
+    jQuery(tbody).find('tr').each(function() {
+        var msgCell = jQuery(this).find('.log-msg-cell');
+        if (msgCell.hasClass('expanded')) {
+            var ts = jQuery(this).find('td:first').text();
+            expandedTimestamps[ts] = true;
+        }
+    });
+
     // Determine new entries for highlight
     var prevNewest = lastNewestTs;
     var currentNewest = data.entries.length > 0 ? data.entries[0].ts : null;
@@ -1623,12 +1640,16 @@ function renderLogTable(data) {
         var rowClass = isNew ? ' class="log-new"' : '';
         var tint = sevRowTint(e.sev);
         var bg = sevBadgeColor(e.sev);
+        var formattedTs = formatLogTimestamp(e.ts);
+        var wasExpanded = expandedTimestamps[formattedTs];
+        var expandedClass = wasExpanded ? ' expanded' : '';
+        var expandArrow = wasExpanded ? '&#x25B2;' : '&#x25BC;';
         html += '<tr style="border-bottom:1px solid #ddd;background:' + tint + ';"' + rowClass + '>';
-        html += '<td style="padding:8px;white-space:nowrap;">' + formatLogTimestamp(e.ts) + '</td>';
+        html += '<td style="padding:8px;white-space:nowrap;">' + formattedTs + '</td>';
         html += '<td style="padding:8px;"><span style="background:' + bg + ';color:#fff;padding:4px 8px;border-radius:4px;font-size:0.85em;">' + escapeAttr(e.sev) + '</span></td>';
         html += '<td style="padding:8px;">' + escapeAttr(e.src || '') + '</td>';
-        html += '<td style="padding:8px;" class="log-msg-cell">' + escapeAttr(e.msg || '') + '</td>';
-        html += '<td style="padding:8px;text-align:center;"><button class="log-expand-btn" title="Expand/collapse">&#x25BC;</button></td>';
+        html += '<td style="padding:8px;" class="log-msg-cell' + expandedClass + '">' + escapeAttr(e.msg || '') + '</td>';
+        html += '<td style="padding:8px;text-align:center;"><button class="log-expand-btn" title="Expand/collapse">' + expandArrow + '</button></td>';
         html += '</tr>';
     }
     tbody.innerHTML = html;
